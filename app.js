@@ -338,9 +338,9 @@ createApp({
                     submittedAt: new Date().toISOString()
                 };
                 
-                // Submit using api.js, test first
-                // const response = await api.submitServiceIntake(submissionData, pdfBlob)
-                const response = await api.submitServiceIntakeTest()
+                // Submit using api.js
+                const response = await api.submitServiceIntake(submissionData, pdfBlob)
+                // const response = await api.submitServiceIntakeTest()
                 
                 if (response.success) {
                     this.successMessage = 'Service intake form submitted successfully! We will contact you shortly.';
