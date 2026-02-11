@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Moto Service Intake - Charged Cycle Works</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <img src="assets/Logo_Wide_Outlined.png" alt="Charged Cycle Works" class="logo">
+            <span class="header-title">Service Intake Form</span>
+        </div>
+    </div>
+    
+    <div id="app">
+        <div class="container">
+            <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+            <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+
+            <form @submit.prevent="submitForm">
+                <!-- Customer Information -->
+                <h2>Customer Information</h2>
+                <div class="form-section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>First Name <span class="required">*</span></label>
+                            <input type="text" v-model="formData.firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name <span class="required">*</span></label>
+                            <input type="text" v-model="formData.lastName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone Number <span class="required">*</span></label>
+                            <input type="tel" v-model="formData.phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address <span class="required">*</span></label>
+                            <input type="email" v-model="formData.email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>Physical Address <span class="required">*</span></label>
+                            <input type="text" v-model="formData.address" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>Requested Service <span class="required">*</span></label>
+                            <textarea v-model="formData.requestedService" required placeholder="Please describe the service you need..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disclosures and Authorization -->
+                <h2>Disclosures and Authorization</h2>
+                <div class="terms-section">
+                    
+                    <!-- Section A -->
+                    <div class="disclosure-box">
+                        <h4>A. SAFETY AND BATTERY DISCLOSURES (check any that apply)</h4>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" v-model="formData.disclosures.submerged">
+                                Submerged or heavy water exposure
+                            </label>
+                            <label>
+                                <input type="checkbox" v-model="formData.disclosures.thermal">
+                                Smoke, sparks, overheating, burning smell, swelling, or fire/thermal event
+                            </label>
+                            <label>
+                                <input type="checkbox" v-model="formData.disclosures.impact">
+                                Impact to battery, charge port, or wiring harness
+                            </label>
+                        </div>
+                        <p style="margin-top: 15px; font-size: 13px; color: #6e6e73;">
+                            Customer confirms all known history has been disclosed. Shop may refuse service or isolate/remove the battery for safety.
+                        </p>
+                        <div class="initials-box">
+                            <label>Initials <span class="required">*</span></label>
+                            <input type="text" v-model="formData.initialsA" maxlength="3" required>
+                        </div>
+                    </div>
+
+                    <!-- Section B -->
+                    <div class="disclosure-box">
+                        <h4>B. AUTHORIZATION, TESTING, AND PAYMENT</h4>
+                        <p class="terms-text">
+                            Diagnostic minimum: $99 (charged even if repairs are declined). Labor: $159/hr unless a written flat-rate quote is provided for a specific scope.
+                        </p>
+                        <p class="terms-text">
+                            If additional time is required beyond a flat-rate quote due to hidden damage or complications, we will attempt to contact you for approval before proceeding. Additional time is billed at $159/hr if approved.
+                        </p>
+                        <p class="terms-text">
+                            No work beyond the authorized estimate or quote without written approval (signature, email, or text/SMS from the number on file).
+                        </p>
+                        <p class="terms-text">
+                            Testing authorized (bench and short test ride when safe). Payment due before release. Storage after 7 days: $20/day.
+                        </p>
+                        <p class="terms-text">
+                            Shop is not responsible for personal items or loose accessories left with the bike. See Terms and Conditions below.
+                        </p>
+                        <div class="initials-box">
+                            <label>Initials <span class="required">*</span></label>
+                            <input type="text" v-model="formData.initialsB" maxlength="3" required>
+                        </div>
+                    </div>
+
+                    <!-- Section C -->
+                    <div class="disclosure-box">
+                        <h4>C. QUALITY CONTROL AND OPERATIONAL ACCESS</h4>
+                        <p class="terms-text">
+                            Customer agrees to leave all keys, batteries, information, and critical operating components (e.g. fobs or chargers) required to operate the bike.
+                        </p>
+                        <p class="terms-text">
+                            If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.
+                        </p>
+                        <p class="terms-text">
+                            Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.
+                        </p>
+                        <div class="initials-box">
+                            <label>Initials <span class="required">*</span></label>
+                            <input type="text" v-model="formData.initialsC" maxlength="3" required>
+                        </div>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <h3>TERMS AND CONDITIONS</h3>
+                    <div class="terms-text">
+                        <h4>1. Estimates and authorization</h4>
+                        <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the total must be approved in writing (signature, email, or text/SMS from the number on file). Authorization records are kept with the repair order.</p>
+
+                        <h4>2. Diagnostic minimum and disassembly</h4>
+                        <p>The $99 diagnostic and intake minimum covers check-in, basic safety inspection, and initial diagnostics and is charged even if repairs are declined. Some faults require disassembly to confirm. Parts removed for inspection may not be reinstalled until authorized.</p>
+
+                        <h4>3. High-voltage and lithium battery safety</h4>
+                        <p>Lithium systems can fail without warning. If the shop determines a battery, wiring, or high-voltage component is unsafe, service may be refused and the bike may be released unrepaired. Customer authorizes the shop to isolate power, remove the battery when necessary, and store it in a safe area. Bikes must be dropped off with a state of charge between 20% and 80%. The shop is not responsible for battery degradation, cell imbalance, or discharge-related failure for bikes dropped off outside of this healthy range. If a bike is received below 40%, the customer must provide a functional charger; otherwise, the shop is not liable for battery health or any issues resulting from the battery sitting in a discharged state. Hidden damage from water, impact, corrosion, or previous overheating may not be discoverable until disassembly.</p>
+
+                        <h4>4. Aftermarket and customer-supplied parts</h4>
+                        <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility and safety issues. The shop is not responsible for failures caused by non-OEM parts, tuning, firmware changes, or wiring modifications. Additional diagnostics may be required to identify modification-related faults.</p>
+
+                        <h4>5. Testing and intermittent conditions</h4>
+                        <p>Customer authorizes bench testing and limited test ride when safe and necessary to verify repairs. Intermittent symptoms may not reproduce. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under test conditions.</p>
+
+                        <h4>6. Warranty</h4>
+                        <p>Unless otherwise stated on the invoice, workmanship is warranted for 30 days from completion for the specific repair performed. Warranty does not cover abuse, competition use, water intrusion, impact damage, altered firmware or tuning after service, customer modifications, or unrelated failures. Manufacturer parts warranty is handled per manufacturer policy when applicable.</p>
+
+                        <h4>7. Storage, fees, and release</h4>
+                        <p>Bikes are released only after payment in full. The first 7 calendar days after completion notice are free, then storage is $20 per day. If a bike is not picked up, the shop may pursue remedies allowed by applicable state law, including lien processes.</p>
+
+                        <h4>8. Property, photos, and data</h4>
+                        <p>Remove personal items and removable accessories before service. The shop is not responsible for loss or damage to personal property or unsecured accessories left on the bike. The shop may take photos for documentation and quality control. Promotional use requires separate consent. Customer authorizes access to diagnostic data (logs, firmware versions, app-based diagnostics) as needed for service.</p>
+
+                        <h4>9. Right to refuse service and limitation of liability</h4>
+                        <p>The shop may refuse service for safety concerns, undisclosed hazards, abusive behavior, or if the repair is not economically or technically feasible. To the extent allowed by law, the shop is not responsible for incidental or consequential damages, including loss of use. Service work may reveal additional issues during disassembly and testing, especially on modified or water-exposed bikes.</p>
+
+                        <p style="margin-top: 20px; font-style: italic; font-size: 12px;">
+                            Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Signature Section -->
+                <div class="signature-section">
+                    <h3>SIGNATURE</h3>
+                    <p class="terms-text">
+                        By signing below, customer confirms they are the owner or authorized agent. Customer has read and agrees to all of the above, including the Disclosures and Authorization section and the Terms and Conditions, and authorizes Charged Cycle Works to perform diagnostic and repair services as approved.
+                    </p>
+
+                    <div class="signature-canvas-container">
+                        <span v-if="!signaturePad || signaturePad.isEmpty()" class="signature-label">Sign here</span>
+                        <canvas ref="signatureCanvas" class="signature-canvas"></canvas>
+                    </div>
+                    <button type="button" @click="clearSignature" class="clear-signature">Clear Signature</button>
+
+                    <div class="signature-date-row">
+                        <div class="form-group">
+                            <label>Printed Name <span class="required">*</span></label>
+                            <input type="text" v-model="formData.printedName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date <span class="required">*</span></label>
+                            <input type="text" v-model="formData.signatureDate" required>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                    <span v-if="!isSubmitting">Submit Service Intake Form</span>
+                    <span v-else><span class="loading"></span> Submitting...</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
