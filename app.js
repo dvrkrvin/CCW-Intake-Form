@@ -77,8 +77,14 @@ createApp({
             }
         }
     },
+    
+    beforeUnmount() {
+        document.removeEventListener('click', this.handleClickOutside);
+    },
+
     mounted() {
         this.initSignaturePad();
+        document.addEventListener('click', this.handleClickOutside);
     },
     methods: {
         getTodayDate() {
@@ -88,7 +94,16 @@ createApp({
             const year = today.getFullYear();
             return `${month}/${day}/${year}`;
         },
+
+        handleClickOutside(event) {
+            const field = this.$refs.stateField;
+            if (!field) return;
         
+            if (!field.contains(event.target)) {
+            this.showStateSuggestions = false;
+            }
+        },
+
         initSignaturePad() {
             const canvas = this.$refs.signatureCanvas;
             
