@@ -98,6 +98,15 @@ select {
     border-radius: 0;
     font-size: 15px;
     background-color: white;
+    transition: all 0.3s;
+    font-family: inherit;
+    background: #fafafa;
+}
+
+select:focus {
+    outline: none;
+    border-color: #e74c3c;
+    background: white;
 }
 
 .subtitle {
@@ -121,6 +130,10 @@ select {
     .form-row {
         grid-template-columns: 1fr;
     }
+}
+
+.city-state-zip-row {
+    grid-template-columns: 2fr 0.75fr 0.75fr;
 }
 
 .form-group {
@@ -163,6 +176,13 @@ textarea:focus {
     outline: none;
     border-color: #e74c3c;
     background: white;
+}
+
+.state-input:focus {
+    outline: none;
+    border-color: #e74c3c;
+    background: white;
+    transition: all 0.3s;
 }
 
 textarea {
