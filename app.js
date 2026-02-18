@@ -29,6 +29,7 @@ createApp({
             },
             signaturePad: null,
             showStateSuggestions: false,
+            showSuccessModal: false,
             allStates: [
                 {abbr:'AL',name:'Alabama'},{abbr:'AK',name:'Alaska'},{abbr:'AZ',name:'Arizona'},
                 {abbr:'AR',name:'Arkansas'},{abbr:'CA',name:'California'},{abbr:'CO',name:'Colorado'},
@@ -49,9 +50,7 @@ createApp({
                 {abbr:'WI',name:'Wisconsin'},{abbr:'WY',name:'Wyoming'}
             ],
             isSubmitting: false,
-            errorMessage: '',
-            successMessage: '',
-            showSuccessModal: false,
+            errorMessage: ''
         };
     },
     computed: {
@@ -63,11 +62,11 @@ createApp({
             }
             return '';
         },
-            filteredStates() {
+        filteredStates() {
             const q = this.formData.state.toUpperCase();
             if (!q) return this.allStates;
             return this.allStates.filter(s =>
-            s.abbr.startsWith(q) || s.name.toUpperCase().startsWith(q)
+                s.abbr.startsWith(q) || s.name.toUpperCase().startsWith(q)
             );
         },
     },
@@ -96,24 +95,16 @@ createApp({
             return `${month}/${day}/${year}`;
         },
 
-        dismissModal() {
-            this.showSuccessModal = false;
-            this.resetForm();
-        },
-
         handleClickOutside(event) {
             const field = this.$refs.stateField;
             if (!field) return;
-        
             if (!field.contains(event.target)) {
-            this.showStateSuggestions = false;
+                this.showStateSuggestions = false;
             }
         },
 
         initSignaturePad() {
             const canvas = this.$refs.signatureCanvas;
-            
-            // Set canvas size based on container
             const container = canvas.parentElement;
             canvas.width = container.offsetWidth;
             canvas.height = 150;
@@ -123,7 +114,6 @@ createApp({
                 penColor: 'rgb(0, 0, 0)'
             });
 
-            // Handle window resize
             window.addEventListener('resize', () => {
                 const data = this.signaturePad.toData();
                 canvas.width = container.offsetWidth;
@@ -142,17 +132,23 @@ createApp({
         },
 
         onStateBlur() {
-          setTimeout(() => {
-            this.showStateSuggestions = false;
-          }, 150);
+            setTimeout(() => {
+                this.showStateSuggestions = false;
+            }, 150);
         },
         
         selectState(s) {
             this.formData.state = s.abbr;
             this.showStateSuggestions = false;
         },
+
         hideStateSuggestions() {
             setTimeout(() => { this.showStateSuggestions = false; }, 150);
+        },
+
+        dismissModal() {
+            this.showSuccessModal = false;
+            this.resetForm();
         },
         
         async generatePDF() {
@@ -164,7 +160,6 @@ createApp({
             const pageWidth = pdf.internal.pageSize.getWidth();
             const maxWidth = pageWidth - (margin * 2);
             
-            // Helper function for consistent spacing
             const addSpace = (amount) => { yPos += amount; };
             const checkPageBreak = (needed = 40) => {
                 if (yPos > 270 - needed) {
@@ -173,7 +168,6 @@ createApp({
                 }
             };
             
-            // Title
             pdf.setFontSize(18);
             pdf.setFont(undefined, 'bold');
             pdf.text('E-MOTO SERVICE INTAKE', margin, yPos);
@@ -187,7 +181,6 @@ createApp({
             pdf.text(`Submitted: ${new Date().toLocaleString()} | Form v16`, margin, yPos);
             addSpace(12);
             
-            // Customer Information Section
             pdf.setFontSize(11);
             pdf.setFont(undefined, 'bold');
             pdf.text('CUSTOMER INFORMATION', margin, yPos);
@@ -222,7 +215,6 @@ createApp({
             });
             addSpace(8);
             
-            // Section A
             checkPageBreak(60);
             pdf.setFontSize(11);
             pdf.setFont(undefined, 'bold');
@@ -253,7 +245,6 @@ createApp({
             pdf.text(`Initials: ${this.formData.initialsA}`, margin, yPos);
             addSpace(10);
             
-            // Section B
             checkPageBreak(70);
             pdf.setFontSize(11);
             pdf.text('B. AUTHORIZATION, TESTING, AND PAYMENT', margin, yPos);
@@ -285,7 +276,6 @@ createApp({
             pdf.text(`Initials: ${this.formData.initialsB}`, margin, yPos);
             addSpace(10);
             
-            // Section C
             checkPageBreak(60);
             pdf.setFontSize(11);
             pdf.text('C. QUALITY CONTROL AND OPERATIONAL ACCESS', margin, yPos);
@@ -315,7 +305,6 @@ createApp({
             pdf.text(`Initials: ${this.formData.initialsC}`, margin, yPos);
             addSpace(10);
             
-            // Terms and Conditions Page
             pdf.addPage();
             yPos = 20;
             
@@ -331,7 +320,6 @@ createApp({
             pdf.text('Full terms available at time of submission and on file with service order.', margin, yPos);
             addSpace(12);
             
-            // Signature Section
             pdf.setFontSize(11);
             pdf.setFont(undefined, 'bold');
             pdf.text('SIGNATURE', margin, yPos);
@@ -346,7 +334,6 @@ createApp({
             });
             addSpace(6);
             
-            // Add signature image
             if (!this.signaturePad.isEmpty()) {
                 const signatureImage = this.signaturePad.toDataURL();
                 pdf.addImage(signatureImage, 'PNG', margin, yPos, 80, 24);
@@ -367,16 +354,13 @@ createApp({
         
         async submitForm() {
             this.errorMessage = '';
-            this.successMessage = '';
             
-            // Validate signature
             if (this.signaturePad.isEmpty()) {
                 this.errorMessage = 'Please provide your signature before submitting.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
             
-            // Validate initials
             if (!this.formData.initialsA || !this.formData.initialsB || !this.formData.initialsC) {
                 this.errorMessage = 'Please provide your initials in all required sections (A, B, and C).';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -386,11 +370,9 @@ createApp({
             this.isSubmitting = true;
             
             try {
-                // Generate PDF
                 const pdf = await this.generatePDF();
                 const pdfBlob = pdf.output('blob');
                 
-                // Prepare form data
                 const submissionData = {
                     customerInfo: {
                         firstName: this.formData.firstName,
@@ -418,16 +400,10 @@ createApp({
                     submittedAt: new Date().toISOString()
                 };
                 
-                // Submit using api.js
-                const response = await api.submitServiceIntake(submissionData, pdfBlob)
-                // const response = await api.submitServiceIntakeTest()
+                const response = await api.submitServiceIntake(submissionData, pdfBlob);
                 
                 if (response.success) {
                     this.showSuccessModal = true;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    setTimeout(() => {
-                        this.resetForm();
-                    }, 3000);
                 } else {
                     this.errorMessage = response.message || 'An error occurred while submitting the form. Please try again.';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -466,7 +442,6 @@ createApp({
                 signatureDate: this.getTodayDate()
             };
             this.signaturePad.clear();
-            this.successMessage = '';
             this.errorMessage = '';
         }
     }
