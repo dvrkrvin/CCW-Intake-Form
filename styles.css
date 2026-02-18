@@ -426,16 +426,6 @@ input[type="checkbox"] {
     font-weight: 600;
 }
 
-.success-message {
-    background: #f0fff4;
-    color: #27ae60;
-    padding: 15px 20px;
-    border-radius: 0;
-    margin-bottom: 25px;
-    border-left: 4px solid #27ae60;
-    font-weight: 600;
-}
-
 .loading {
     display: inline-block;
     width: 16px;
@@ -450,11 +440,12 @@ input[type="checkbox"] {
     to { transform: rotate(360deg); }
 }
 
-/* Success Modal */
+/* ── Success Modal ───────────────────────────────────────── */
+
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 10000;
     display: flex;
     align-items: center;
@@ -464,34 +455,34 @@ input[type="checkbox"] {
 
 .modal {
     background: white;
-    max-width: 480px;
+    max-width: 460px;
     width: 100%;
     border-top: 5px solid #27ae60;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    padding: 40px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    padding: 50px 40px 40px;
     text-align: center;
-    animation: modalIn 0.2s ease;
+    animation: modalIn 0.25s ease;
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: translateY(-20px); }
+    from { opacity: 0; transform: translateY(-16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-icon {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     background: #27ae60;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
+    margin: 0 auto 24px;
 }
 
 .modal-icon svg {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     stroke: white;
     fill: none;
     stroke-width: 3;
@@ -500,38 +491,36 @@ input[type="checkbox"] {
 }
 
 .modal-title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     color: #2b2b2b;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .modal-body {
     font-size: 15px;
     color: #555;
-    line-height: 1.7;
-    margin-bottom: 30px;
-}
-
-.modal-body strong {
-    color: #2b2b2b;
+    line-height: 1.75;
+    margin-bottom: 32px;
 }
 
 .modal-dismiss {
     background: #e74c3c;
     color: white;
     border: none;
-    padding: 14px 40px;
-    font-size: 14px;
+    padding: 14px 48px;
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: background 0.2s;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .modal-dismiss:hover {
     background: #c0392b;
+    transform: translateY(-1px);
 }
