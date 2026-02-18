@@ -119,6 +119,13 @@ createApp({
             this.formData.state = this.formData.state.toUpperCase();
             this.showStateSuggestions = true;
         },
+
+        onStateBlur() {
+          setTimeout(() => {
+            this.showStateSuggestions = false;
+          }, 150);
+        },
+        
         selectState(s) {
             this.formData.state = s.abbr;
             this.showStateSuggestions = false;
