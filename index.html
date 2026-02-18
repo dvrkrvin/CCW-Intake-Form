@@ -18,6 +18,20 @@
     </div>
     
     <div id="app">
+                <!-- Success Modal -->
+        <div v-if="showSuccessModal" class="modal-overlay" @click.self="dismissModal">
+            <div class="modal">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="modal-title">Request Received</div>
+                <div class="modal-body">
+                    <strong>Thank you — your service request has been submitted.</strong><br><br>
+                    Our team at Charged Cycle Works will review your intake and be in touch shortly to confirm your appointment.
+                </div>
+                <button class="modal-dismiss" @click="dismissModal">Dismiss</button>
+            </div>
+        </div>
         <div class="container">
             <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
             <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
