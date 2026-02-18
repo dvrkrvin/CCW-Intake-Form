@@ -10,7 +10,11 @@ createApp({
                 lastName: '',
                 phone: '',
                 email: '',
-                address: '',
+                address1: '',
+                address2: '',
+                city: '',
+                state: '',
+                zip: '',
                 requestedService: '',
                 disclosures: {
                     submerged: false,
@@ -24,6 +28,13 @@ createApp({
                 signatureDate: this.getTodayDate()
             },
             signaturePad: null,
+            states: [
+                'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+                'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+                'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+                'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+                'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
+            ],
             isSubmitting: false,
             errorMessage: '',
             successMessage: ''
@@ -130,7 +141,10 @@ createApp({
             addSpace(5);
             pdf.text(this.formData.email, margin, yPos);
             addSpace(5);
-            pdf.text(this.formData.address, margin, yPos);
+            const addressLine2 = this.formData.address2 ? `\n${this.formData.address2}` : '';
+            pdf.text(`${this.formData.address1}${addressLine2}`, margin, yPos);
+            addSpace(5);
+            pdf.text(`${this.formData.city}, ${this.formData.state} ${this.formData.zip}`, margin, yPos);
             addSpace(8);
             
             pdf.setFontSize(9);
@@ -321,7 +335,11 @@ createApp({
                         lastName: this.formData.lastName,
                         phone: this.formData.phone,
                         email: this.formData.email,
-                        address: this.formData.address,
+                        address1: this.formData.address1,
+                        address2: this.formData.address2,
+                        city: this.formData.city,
+                        state: this.formData.state,
+                        zip: this.formData.zip,
                         requestedService: this.formData.requestedService
                     },
                     disclosures: this.formData.disclosures,
@@ -370,7 +388,11 @@ createApp({
                 lastName: '',
                 phone: '',
                 email: '',
-                address: '',
+                address1: '',
+                address2: '',
+                city: '',
+                state: '',
+                zip: '',
                 requestedService: '',
                 disclosures: {
                     submerged: false,
