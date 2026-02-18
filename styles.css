@@ -449,3 +449,89 @@ input[type="checkbox"] {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* Success Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal {
+    background: white;
+    max-width: 480px;
+    width: 100%;
+    border-top: 5px solid #27ae60;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 40px;
+    text-align: center;
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-icon {
+    width: 60px;
+    height: 60px;
+    background: #27ae60;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.modal-icon svg {
+    width: 30px;
+    height: 30px;
+    stroke: white;
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #2b2b2b;
+    margin-bottom: 12px;
+}
+
+.modal-body {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+.modal-body strong {
+    color: #2b2b2b;
+}
+
+.modal-dismiss {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.modal-dismiss:hover {
+    background: #c0392b;
+}
