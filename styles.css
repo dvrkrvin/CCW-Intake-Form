@@ -101,6 +101,7 @@ h3 {
 }
 
 .state-dropdown {
+    pointer-events: auto;
     position: absolute;
     top: calc(100% - 2px);
     left: 0;
