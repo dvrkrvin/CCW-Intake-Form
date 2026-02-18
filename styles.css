@@ -95,6 +95,11 @@ h3 {
     position: relative;
 }
 
+.state-field input:focus {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .state-dropdown {
     position: absolute;
     top: calc(100% - 2px);
@@ -109,6 +114,13 @@ h3 {
     box-shadow: 0 8px 18px rgba(0,0,0,0.15);
 }
 
+.state-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.state-dropdown::-webkit-scrollbar-thumb {
+    background: #e74c3c;
+}
 
 .state-option {
     display: flex;
@@ -120,8 +132,17 @@ h3 {
     transition: background 0.15s;
 }
 
+.state-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
 .state-option:hover {
-    background: #fff5f5;
+    background: #fff1f1;
 }
 
 .state-abbr {
