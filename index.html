@@ -18,23 +18,24 @@
     </div>
     
     <div id="app">
-                <!-- Success Modal -->
-        <div v-if="showSuccessModal" class="modal-overlay" @click.self="dismissModal">
+
+        <!-- Success Modal -->
+        <div v-if="showSuccessModal" class="modal-overlay">
             <div class="modal">
                 <div class="modal-icon">
                     <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </div>
                 <div class="modal-title">Request Received</div>
                 <div class="modal-body">
-                    <strong>Thank you — your service request has been submitted.</strong><br><br>
-                    Our team at Charged Cycle Works will review your intake and be in touch shortly to confirm your appointment.
+                    Thank you — your service request has been successfully submitted.<br><br>
+                    Our team at Charged Cycle Works will review your intake and reach out shortly to confirm your appointment.
                 </div>
                 <button class="modal-dismiss" @click="dismissModal">Dismiss</button>
             </div>
         </div>
+
         <div class="container">
             <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-            <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
 
             <form @submit.prevent="submitForm">
                 <!-- Customer Information -->
@@ -77,33 +78,33 @@
                             <label>City <span class="required">*</span></label>
                             <input type="text" v-model="formData.city" required>
                         </div>
-                    <div
-                      class="form-group state-field"
-                      @focusin="showStateSuggestions = true"
-                      @focusout="showStateSuggestions = false"
-                    >
-                        <label>State <span class="required">*</span></label>
-                        <input
-                            type="text"
-                            v-model="formData.state"
-                            required
-                            placeholder="State"
-                            maxlength="2"
-                            @input="onStateInput"
-                            autocomplete="off"
-                        />
-                        <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
-                            <div
-                                v-for="s in filteredStates"
-                                :key="s.abbr"
-                                class="state-option"
-                                @pointerdown.prevent="selectState(s)"
-                            >
-                                <span class="state-abbr">{{ s.abbr }}</span>
-                                <span class="state-name">{{ s.name }}</span>
+                        <div
+                          class="form-group state-field"
+                          @focusin="showStateSuggestions = true"
+                          @focusout="showStateSuggestions = false"
+                        >
+                            <label>State <span class="required">*</span></label>
+                            <input
+                                type="text"
+                                v-model="formData.state"
+                                required
+                                placeholder="State"
+                                maxlength="2"
+                                @input="onStateInput"
+                                autocomplete="off"
+                            />
+                            <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
+                                <div
+                                    v-for="s in filteredStates"
+                                    :key="s.abbr"
+                                    class="state-option"
+                                    @pointerdown.prevent="selectState(s)"
+                                >
+                                    <span class="state-abbr">{{ s.abbr }}</span>
+                                    <span class="state-name">{{ s.name }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
                         <div class="form-group">
                             <label>ZIP Code <span class="required">*</span></label>
                             <input type="text" v-model="formData.zip" required pattern="\d{5}(-\d{4})?" placeholder="" maxlength="10">
