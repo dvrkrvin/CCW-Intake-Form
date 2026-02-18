@@ -50,7 +50,8 @@ createApp({
             ],
             isSubmitting: false,
             errorMessage: '',
-            successMessage: ''
+            successMessage: '',
+            showSuccessModal: false,
         };
     },
     computed: {
@@ -93,6 +94,11 @@ createApp({
             const day = String(today.getDate()).padStart(2, '0');
             const year = today.getFullYear();
             return `${month}/${day}/${year}`;
+        },
+
+        dismissModal() {
+            this.showSuccessModal = false;
+            this.resetForm();
         },
 
         handleClickOutside(event) {
@@ -417,10 +423,8 @@ createApp({
                 // const response = await api.submitServiceIntakeTest()
                 
                 if (response.success) {
-                    this.successMessage = 'Service intake form submitted successfully! We will contact you shortly.';
+                    this.showSuccessModal = true;
                     window.scrollTo({ top: 0, behavior: 'smooth' });
-                    
-                    // Reset form after 3 seconds
                     setTimeout(() => {
                         this.resetForm();
                     }, 3000);
