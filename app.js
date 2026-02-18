@@ -28,12 +28,25 @@ createApp({
                 signatureDate: this.getTodayDate()
             },
             signaturePad: null,
-            states: [
-                'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-                'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-                'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-                'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-                'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
+            showStateSuggestions: false,
+            allStates: [
+                {abbr:'AL',name:'Alabama'},{abbr:'AK',name:'Alaska'},{abbr:'AZ',name:'Arizona'},
+                {abbr:'AR',name:'Arkansas'},{abbr:'CA',name:'California'},{abbr:'CO',name:'Colorado'},
+                {abbr:'CT',name:'Connecticut'},{abbr:'DE',name:'Delaware'},{abbr:'FL',name:'Florida'},
+                {abbr:'GA',name:'Georgia'},{abbr:'HI',name:'Hawaii'},{abbr:'ID',name:'Idaho'},
+                {abbr:'IL',name:'Illinois'},{abbr:'IN',name:'Indiana'},{abbr:'IA',name:'Iowa'},
+                {abbr:'KS',name:'Kansas'},{abbr:'KY',name:'Kentucky'},{abbr:'LA',name:'Louisiana'},
+                {abbr:'ME',name:'Maine'},{abbr:'MD',name:'Maryland'},{abbr:'MA',name:'Massachusetts'},
+                {abbr:'MI',name:'Michigan'},{abbr:'MN',name:'Minnesota'},{abbr:'MS',name:'Mississippi'},
+                {abbr:'MO',name:'Missouri'},{abbr:'MT',name:'Montana'},{abbr:'NE',name:'Nebraska'},
+                {abbr:'NV',name:'Nevada'},{abbr:'NH',name:'New Hampshire'},{abbr:'NJ',name:'New Jersey'},
+                {abbr:'NM',name:'New Mexico'},{abbr:'NY',name:'New York'},{abbr:'NC',name:'North Carolina'},
+                {abbr:'ND',name:'North Dakota'},{abbr:'OH',name:'Ohio'},{abbr:'OK',name:'Oklahoma'},
+                {abbr:'OR',name:'Oregon'},{abbr:'PA',name:'Pennsylvania'},{abbr:'RI',name:'Rhode Island'},
+                {abbr:'SC',name:'South Carolina'},{abbr:'SD',name:'South Dakota'},{abbr:'TN',name:'Tennessee'},
+                {abbr:'TX',name:'Texas'},{abbr:'UT',name:'Utah'},{abbr:'VT',name:'Vermont'},
+                {abbr:'VA',name:'Virginia'},{abbr:'WA',name:'Washington'},{abbr:'WV',name:'West Virginia'},
+                {abbr:'WI',name:'Wisconsin'},{abbr:'WY',name:'Wyoming'}
             ],
             isSubmitting: false,
             errorMessage: '',
@@ -48,7 +61,14 @@ createApp({
                 return `${first} ${last}`;
             }
             return '';
-        }
+        },
+            filteredStates() {
+            const q = this.formData.state.toUpperCase();
+            if (!q) return this.allStates;
+            return this.allStates.filter(s =>
+            s.abbr.startsWith(q) || s.name.toUpperCase().startsWith(q)
+            );
+        },
     },
     watch: {
         fullName(newName) {
@@ -93,6 +113,18 @@ createApp({
         
         clearSignature() {
             this.signaturePad.clear();
+        },
+
+        onStateInput() {
+            this.formData.state = this.formData.state.toUpperCase();
+            this.showStateSuggestions = true;
+        },
+        selectState(s) {
+            this.formData.state = s.abbr;
+            this.showStateSuggestions = false;
+        },
+        hideStateSuggestions() {
+            setTimeout(() => { this.showStateSuggestions = false; }, 150);
         },
         
         async generatePDF() {
@@ -141,12 +173,14 @@ createApp({
             addSpace(5);
             pdf.text(this.formData.email, margin, yPos);
             addSpace(5);
-            const addressLine2 = this.formData.address2 ? `\n${this.formData.address2}` : '';
-            pdf.text(`${this.formData.address1}${addressLine2}`, margin, yPos);
+            pdf.text(this.formData.address1, margin, yPos);
             addSpace(5);
+            if (this.formData.address2) {
+                pdf.text(this.formData.address2, margin, yPos);
+                addSpace(5);
+            }
             pdf.text(`${this.formData.city}, ${this.formData.state} ${this.formData.zip}`, margin, yPos);
             addSpace(8);
-            
             pdf.setFontSize(9);
             pdf.setFont(undefined, 'bold');
             pdf.text('Requested Service:', margin, yPos);
