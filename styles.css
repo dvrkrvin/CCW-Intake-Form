@@ -97,17 +97,18 @@ h3 {
 
 .state-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% - 2px);
     left: 0;
-    right: 0;
+    width: 100%;
     background: white;
     border: 2px solid #e74c3c;
     border-top: none;
-    z-index: 100;
+    z-index: 9999;
     max-height: 220px;
     overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
 }
+
 
 .state-option {
     display: flex;
