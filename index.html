@@ -73,7 +73,7 @@
                             maxlength="2"
                             @input="onStateInput"
                             @focus="showStateSuggestions = true"
-                            @blur="hideStateSuggestions"
+                            @blur="onStateBlur"
                             autocomplete="off"
                         >
                         <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
