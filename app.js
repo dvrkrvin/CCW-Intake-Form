@@ -27,10 +27,6 @@ createApp({
                 printedName: '',
                 signatureDate: this.getTodayDate()
             },
-            // Tracks which fields have been touched (blurred at least once)
-            touched: {},
-            // Tracks fields that failed on submit-attempt (shows errors even if not touched)
-            submitAttempted: false,
             signaturePad: null,
             showStateSuggestions: false,
             showSuccessModal: false,
@@ -54,140 +50,19 @@ createApp({
                 {abbr:'WI',name:'Wisconsin'},{abbr:'WY',name:'Wyoming'}
             ],
             isSubmitting: false,
-            errorMessage: '',
-            _dropdownTouchStartY: 0,
-            _dropdownDidScroll: false
+            errorMessage: ''
         };
     },
 
     computed: {
-        fullName() {
-            const first = this.formData.firstName.trim();
-            const last = this.formData.lastName.trim();
-            return (first && last) ? `${first} ${last}` : '';
-        },
-
         filteredStates() {
             const q = this.formData.state.toUpperCase();
-            if (!q) return this.allStates;
+            if (!q) return this.allStates.slice(0, 6);
             return this.allStates.filter(s =>
                 s.abbr.startsWith(q) || s.name.toUpperCase().startsWith(q)
-            );
-        },
-
-        // ── Field-level error messages ──────────────────────────────────────
-        errors() {
-            const f = this.formData;
-            const e = {};
-
-            // First Name
-            if (!f.firstName.trim()) {
-                e.firstName = 'First name is required.';
-            } else if (!/^[A-Za-z\s'\-\.]+$/.test(f.firstName.trim())) {
-                e.firstName = 'First name can only contain letters, spaces, hyphens, or apostrophes.';
-            }
-
-            // Last Name
-            if (!f.lastName.trim()) {
-                e.lastName = 'Last name is required.';
-            } else if (!/^[A-Za-z\s'\-\.]+$/.test(f.lastName.trim())) {
-                e.lastName = 'Last name can only contain letters, spaces, hyphens, or apostrophes.';
-            }
-
-            // Phone — must be a valid 10-digit US number (formatting allowed)
-            const rawPhone = f.phone.replace(/\D/g, '');
-            if (!f.phone.trim()) {
-                e.phone = 'Phone number is required.';
-            } else if (rawPhone.length !== 10) {
-                e.phone = 'Enter a valid 10-digit phone number.';
-            }
-
-            // Email
-            if (!f.email.trim()) {
-                e.email = 'Email address is required.';
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) {
-                e.email = 'Enter a valid email address.';
-            }
-
-            // Address 1
-            if (!f.address1.trim()) {
-                e.address1 = 'Street address is required.';
-            }
-
-            // City
-            if (!f.city.trim()) {
-                e.city = 'City is required.';
-            } else if (!/^[A-Za-z\s'\-\.]+$/.test(f.city.trim())) {
-                e.city = 'City name can only contain letters and spaces.';
-            }
-
-            // State
-            const validAbbrs = this.allStates.map(s => s.abbr);
-            if (!f.state.trim()) {
-                e.state = 'State is required.';
-            } else if (!validAbbrs.includes(f.state.toUpperCase())) {
-                e.state = 'Enter a valid 2-letter US state abbreviation.';
-            }
-
-            // ZIP
-            if (!f.zip.trim()) {
-                e.zip = 'ZIP code is required.';
-            } else if (!/^\d{5}(-\d{4})?$/.test(f.zip.trim())) {
-                e.zip = 'Enter a valid ZIP code (e.g. 84101 or 84101-1234).';
-            }
-
-            // Requested service
-            if (!f.requestedService.trim()) {
-                e.requestedService = 'Please describe the service you need.';
-            } else if (f.requestedService.trim().length < 10) {
-                e.requestedService = 'Please provide a bit more detail (at least 10 characters).';
-            }
-
-            // Initials — letters only, 1–3 chars
-            if (!f.initialsA.trim()) {
-                e.initialsA = 'Initials are required for section A.';
-            } else if (!/^[A-Za-z]{1,3}$/.test(f.initialsA.trim())) {
-                e.initialsA = 'Initials must be 1–3 letters.';
-            }
-
-            if (!f.initialsB.trim()) {
-                e.initialsB = 'Initials are required for section B.';
-            } else if (!/^[A-Za-z]{1,3}$/.test(f.initialsB.trim())) {
-                e.initialsB = 'Initials must be 1–3 letters.';
-            }
-
-            if (!f.initialsC.trim()) {
-                e.initialsC = 'Initials are required for section C.';
-            } else if (!/^[A-Za-z]{1,3}$/.test(f.initialsC.trim())) {
-                e.initialsC = 'Initials must be 1–3 letters.';
-            }
-
-            // Printed name — must match the derived full name
-            if (!f.printedName.trim()) {
-                e.printedName = 'Printed name is required.';
-            } else if (
-                this.fullName &&
-                f.printedName.trim().toLowerCase() !== this.fullName.toLowerCase()
-            ) {
-                e.printedName = 'Printed name must match the first and last name entered above.';
-            }
-
-            // Signature date — MM/DD/YYYY
-            if (!f.signatureDate.trim()) {
-                e.signatureDate = 'Date is required.';
-            } else if (!/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(f.signatureDate.trim())) {
-                e.signatureDate = 'Enter date as MM/DD/YYYY.';
-            }
-
-            return e;
-        },
-
-        isFormValid() {
-            return Object.keys(this.errors).length === 0;
+            ).slice(0, 6);
         }
     },
-
-    watch: {},
 
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside);
@@ -199,7 +74,6 @@ createApp({
     },
 
     methods: {
-        // ── Helpers ────────────────────────────────────────────────────────
         getTodayDate() {
             const today = new Date();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -208,34 +82,12 @@ createApp({
             return `${month}/${day}/${year}`;
         },
 
-        // Mark a field as touched so its error becomes visible
-        touch(field) {
-            this.touched = { ...this.touched, [field]: true };
-        },
-
-        // Returns the error string for a field, but only when it should be shown
-        fieldError(field) {
-            if (this.submitAttempted || this.touched[field]) {
-                return this.errors[field] || '';
-            }
-            return '';
-        },
-
-        // Returns true when the field should be styled as invalid
-        isInvalid(field) {
-            return !!this.fieldError(field);
-        },
-
-        // ── Input guardrails ────────────────────────────────────────────────
-
-        // Strip non-alpha characters from name fields (allow spaces, hyphens, apostrophes, dots)
+        // ── Name fields ──────────────────────────────────────────────────────
         onNameInput(field) {
             this.formData[field] = this.formData[field].replace(/[^A-Za-z\s'\-\.]/g, '');
         },
 
-        // Update printed name only when a name field fully loses focus
-        onNameBlur(field) {
-            this.touch(field);
+        onNameBlur() {
             const first = this.formData.firstName.trim();
             const last  = this.formData.lastName.trim();
             if (first && last) {
@@ -243,7 +95,7 @@ createApp({
             }
         },
 
-        // Auto-format phone number as (###) ###-#### while typing
+        // ── Phone ────────────────────────────────────────────────────────────
         onPhoneInput() {
             let digits = this.formData.phone.replace(/\D/g, '').slice(0, 10);
             if (digits.length === 0) {
@@ -257,10 +109,9 @@ createApp({
             }
         },
 
-        // Restrict ZIP to digits and one optional hyphen group
+        // ── ZIP ──────────────────────────────────────────────────────────────
         onZipInput() {
             let val = this.formData.zip.replace(/[^\d-]/g, '');
-            // Prevent more than one hyphen or a hyphen before position 5
             const parts = val.split('-');
             if (parts[0].length > 5) parts[0] = parts[0].slice(0, 5);
             if (parts.length > 2) parts.splice(2);
@@ -268,37 +119,18 @@ createApp({
             this.formData.zip = parts.join('-');
         },
 
-        // Initials: letters only, auto-uppercase
+        // ── Initials ─────────────────────────────────────────────────────────
         onInitialsInput(field) {
             this.formData[field] = this.formData[field].replace(/[^A-Za-z]/g, '').toUpperCase();
         },
 
-        onDropdownTouchStart(e) {
-            this._dropdownTouchStartY = e.touches[0].clientY;
-            this._dropdownDidScroll  = false;
-        },
-
-        onDropdownTouchMove(e) {
-            if (Math.abs(e.touches[0].clientY - this._dropdownTouchStartY) > 6) {
-                this._dropdownDidScroll = true;
-            }
-        },
-
-        onDropdownItemTouchEnd(s, e) {
-            e.preventDefault();
-            if (!this._dropdownDidScroll) {
-                this.selectState(s);
-            }
-        },
-
-        // State input
+        // ── State dropdown ───────────────────────────────────────────────────
         onStateInput() {
             this.formData.state = this.formData.state.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2);
             this.showStateSuggestions = true;
         },
 
         onStateBlur() {
-            this.touch('state');
             setTimeout(() => { this.showStateSuggestions = false; }, 150);
         },
 
@@ -315,7 +147,7 @@ createApp({
             }
         },
 
-        // ── Signature ───────────────────────────────────────────────────────
+        // ── Signature ────────────────────────────────────────────────────────
         initSignaturePad() {
             const canvas    = this.$refs.signatureCanvas;
             const container = canvas.parentElement;
@@ -328,8 +160,8 @@ createApp({
             });
 
             window.addEventListener('resize', () => {
-                const data   = this.signaturePad.toData();
-                canvas.width = container.offsetWidth;
+                const data    = this.signaturePad.toData();
+                canvas.width  = container.offsetWidth;
                 canvas.height = 150;
                 this.signaturePad.fromData(data);
             });
@@ -339,13 +171,13 @@ createApp({
             this.signaturePad.clear();
         },
 
-        // ── Modal ───────────────────────────────────────────────────────────
+        // ── Modal ─────────────────────────────────────────────────────────────
         dismissModal() {
             this.showSuccessModal = false;
             this.resetForm();
         },
 
-        // ── PDF generation ──────────────────────────────────────────────────
+        // ── PDF ───────────────────────────────────────────────────────────────
         async generatePDF() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -355,7 +187,7 @@ createApp({
             const pageWidth = pdf.internal.pageSize.getWidth();
             const maxWidth  = pageWidth - (margin * 2);
 
-            const addSpace      = (n) => { yPos += n; };
+            const addSpace       = (n) => { yPos += n; };
             const checkPageBreak = (needed = 40) => {
                 if (yPos > 270 - needed) { pdf.addPage(); yPos = 20; }
             };
@@ -465,22 +297,40 @@ createApp({
             return pdf;
         },
 
-        // ── Submit ──────────────────────────────────────────────────────────
+        // ── Submit ────────────────────────────────────────────────────────────
         async submitForm() {
-            this.errorMessage   = '';
-            this.submitAttempted = true;
+            this.errorMessage = '';
 
-            // Check signature first (not covered by computed errors)
-            if (this.signaturePad.isEmpty()) {
-                this.errorMessage = 'Please provide your signature before submitting.';
+            const f = this.formData;
+            const requiredFields = [
+                [f.firstName.trim(),        'First name'],
+                [f.lastName.trim(),         'Last name'],
+                [f.phone.trim(),            'Phone number'],
+                [f.email.trim(),            'Email address'],
+                [f.address1.trim(),         'Street address'],
+                [f.city.trim(),             'City'],
+                [f.state.trim(),            'State'],
+                [f.zip.trim(),              'ZIP code'],
+                [f.requestedService.trim(), 'Requested service'],
+                [f.initialsA.trim(),        'Initials for section A'],
+                [f.initialsB.trim(),        'Initials for section B'],
+                [f.initialsC.trim(),        'Initials for section C'],
+                [f.printedName.trim(),      'Printed name'],
+                [f.signatureDate.trim(),    'Date'],
+            ];
+
+            const missing = requiredFields
+                .filter(([val]) => !val)
+                .map(([, label]) => label);
+
+            if (missing.length) {
+                this.errorMessage = `Please complete the following before submitting: ${missing.join(', ')}.`;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
 
-            // Run all field validations
-            if (!this.isFormValid) {
-                const count = Object.keys(this.errors).length;
-                this.errorMessage = `Please fix ${count} error${count > 1 ? 's' : ''} before submitting.`;
+            if (this.signaturePad.isEmpty()) {
+                this.errorMessage = 'Please provide your signature before submitting.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
@@ -493,26 +343,26 @@ createApp({
 
                 const submissionData = {
                     customerInfo: {
-                        firstName:       this.formData.firstName,
-                        lastName:        this.formData.lastName,
-                        phone:           this.formData.phone,
-                        email:           this.formData.email,
-                        address1:        this.formData.address1,
-                        address2:        this.formData.address2,
-                        city:            this.formData.city,
-                        state:           this.formData.state,
-                        zip:             this.formData.zip,
-                        requestedService: this.formData.requestedService
+                        firstName:        f.firstName,
+                        lastName:         f.lastName,
+                        phone:            f.phone,
+                        email:            f.email,
+                        address1:         f.address1,
+                        address2:         f.address2,
+                        city:             f.city,
+                        state:            f.state,
+                        zip:              f.zip,
+                        requestedService: f.requestedService
                     },
-                    disclosures: this.formData.disclosures,
+                    disclosures: f.disclosures,
                     initials: {
-                        sectionA: this.formData.initialsA,
-                        sectionB: this.formData.initialsB,
-                        sectionC: this.formData.initialsC
+                        sectionA: f.initialsA,
+                        sectionB: f.initialsB,
+                        sectionC: f.initialsC
                     },
                     signature: {
-                        printedName:   this.formData.printedName,
-                        date:          this.formData.signatureDate,
+                        printedName:   f.printedName,
+                        date:          f.signatureDate,
                         signatureData: this.signaturePad.toDataURL()
                     },
                     submittedAt: new Date().toISOString()
@@ -537,7 +387,7 @@ createApp({
             }
         },
 
-        // ── Reset ───────────────────────────────────────────────────────────
+        // ── Reset ─────────────────────────────────────────────────────────────
         resetForm() {
             this.formData = {
                 firstName: '', lastName: '', phone: '', email: '',
@@ -548,8 +398,6 @@ createApp({
                 printedName: '',
                 signatureDate: this.getTodayDate()
             };
-            this.touched         = {};
-            this.submitAttempted = false;
             this.signaturePad.clear();
             this.errorMessage = '';
         }
