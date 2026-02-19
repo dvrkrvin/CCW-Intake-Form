@@ -54,7 +54,9 @@ createApp({
                 {abbr:'WI',name:'Wisconsin'},{abbr:'WY',name:'Wyoming'}
             ],
             isSubmitting: false,
-            errorMessage: ''
+            errorMessage: '',
+            _dropdownTouchStartY: 0,
+            _dropdownDidScroll: false
         };
     },
 
@@ -185,13 +187,7 @@ createApp({
         }
     },
 
-    watch: {
-        fullName(newName) {
-            if (newName) {
-                this.formData.printedName = newName;
-            }
-        }
-    },
+    watch: {},
 
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside);
@@ -237,6 +233,16 @@ createApp({
             this.formData[field] = this.formData[field].replace(/[^A-Za-z\s'\-\.]/g, '');
         },
 
+        // Update printed name only when a name field fully loses focus
+        onNameBlur(field) {
+            this.touch(field);
+            const first = this.formData.firstName.trim();
+            const last  = this.formData.lastName.trim();
+            if (first && last) {
+                this.formData.printedName = `${first} ${last}`;
+            }
+        },
+
         // Auto-format phone number as (###) ###-#### while typing
         onPhoneInput() {
             let digits = this.formData.phone.replace(/\D/g, '').slice(0, 10);
@@ -265,6 +271,24 @@ createApp({
         // Initials: letters only, auto-uppercase
         onInitialsInput(field) {
             this.formData[field] = this.formData[field].replace(/[^A-Za-z]/g, '').toUpperCase();
+        },
+
+        onDropdownTouchStart(e) {
+            this._dropdownTouchStartY = e.touches[0].clientY;
+            this._dropdownDidScroll  = false;
+        },
+
+        onDropdownTouchMove(e) {
+            if (Math.abs(e.touches[0].clientY - this._dropdownTouchStartY) > 6) {
+                this._dropdownDidScroll = true;
+            }
+        },
+
+        onDropdownItemTouchEnd(s, e) {
+            e.preventDefault();
+            if (!this._dropdownDidScroll) {
+                this.selectState(s);
+            }
         },
 
         // State input
