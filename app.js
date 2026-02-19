@@ -3,9 +3,9 @@
 const { createApp } = Vue;
 
 // ---------------------------------------------------------------------------
-// CDN dependency guard — if any library fails to load (network error, SRI
-// mismatch, CDN outage) fail loudly with a clear message rather than throwing
-// a cryptic ReferenceError later when the user tries to sign or submit.
+// CDN dependency guard — surfaces a clear error if any library fails to load
+// (network error, CDN outage) rather than throwing a cryptic ReferenceError
+// later when the user tries to sign or submit.
 // ---------------------------------------------------------------------------
 (function checkDependencies() {
     const missing = [];
@@ -23,13 +23,12 @@ const { createApp } = Vue;
 }());
 
 // ---------------------------------------------------------------------------
-// Helpers defined outside the component so they can be called freely during
-// data() initialisation (before `this` is fully wired up by Vue).
+// Helpers at module scope so they can be called safely inside data() before
+// Vue has bound methods to `this`.
 // ---------------------------------------------------------------------------
 
 /**
  * Returns today's date formatted as MM/DD/YYYY.
- * Defined at module scope so it can safely be called inside data().
  */
 function getTodayDate() {
     const today = new Date();
@@ -39,7 +38,7 @@ function getTodayDate() {
     return `${month}/${day}/${year}`;
 }
 
-// Valid US state abbreviations – used by submitForm() to reject unknown values.
+// Valid US state abbreviations — used by submitForm() to reject unknown values like "XX".
 const VALID_STATE_ABBRS = new Set([
     'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN',
     'IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV',
@@ -70,15 +69,16 @@ createApp({
                 initialsB: '',
                 initialsC: '',
                 printedName: '',
-                // Use module-level helper; calling this.getTodayDate() here is unreliable
-                // because Vue has not yet bound methods to `this` at data() time.
+                // Calls module-level getTodayDate() — calling this.getTodayDate() inside
+                // data() is unreliable because Vue hasn't bound methods to `this` yet.
                 signatureDate: getTodayDate()
             },
-            // Tracks whether the user has manually edited printedName so the
-            // fullName watcher doesn't overwrite intentional customisations.
+            // When true, the fullName watcher stops auto-populating printedName so
+            // a user's manual edits aren't silently overwritten.
             _printedNameManuallyEdited: false,
             signaturePad: null,
-            // Stored so we can remove it in beforeUnmount() and avoid a memory leak.
+            // Stored reference to the resize handler so beforeUnmount() can remove it.
+            // An anonymous function cannot be unregistered, causing a memory leak.
             _resizeHandler: null,
             showStateSuggestions: false,
             showSuccessModal: false,
@@ -124,9 +124,9 @@ createApp({
     },
     watch: {
         fullName(newName) {
-            // Only auto-populate printedName if the user has not manually edited it.
-            // Without this guard, editing firstName or lastName after the user has
-            // customised printedName would silently discard their changes.
+            // Only auto-populate printedName if the user hasn't manually edited it.
+            // Without this guard, correcting a typo in firstName would overwrite
+            // any custom value the user had typed into the printedName field.
             if (newName && !this._printedNameManuallyEdited) {
                 this.formData.printedName = newName;
             }
@@ -135,9 +135,7 @@ createApp({
     
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside);
-        // Remove the resize handler stored at mount time.
-        // Previously an anonymous arrow function was used, making removal impossible
-        // and causing a memory leak every time the component was destroyed.
+        // Remove the stored resize handler to prevent a memory leak.
         if (this._resizeHandler) {
             window.removeEventListener('resize', this._resizeHandler);
         }
@@ -149,7 +147,7 @@ createApp({
     },
     methods: {
         // getTodayDate() has been moved to module scope (top of file) so it can be
-        // called safely inside data() before Vue binds methods to `this`.
+        // safely called inside data() before Vue binds methods to `this`.
 
         handleClickOutside(event) {
             const field = this.$refs.stateField;
@@ -161,13 +159,11 @@ createApp({
 
         initSignaturePad() {
             const canvas = this.$refs.signatureCanvas;
-
-            // Guard: if the container has no layout width yet (e.g. hidden tab, race
-            // condition on mount) fall back to a sensible default so the canvas isn't
-            // created with width=0, which would produce a broken signature image.
             const container = canvas.parentElement;
-            const containerWidth = container.offsetWidth || 600;
-            canvas.width  = containerWidth;
+
+            // Guard: offsetWidth can be 0 if the element hasn't painted yet.
+            // A zero-width canvas produces a broken signature image.
+            canvas.width  = container.offsetWidth || 600;
             canvas.height = 150;
             
             this.signaturePad = new SignaturePad(canvas, {
@@ -175,9 +171,8 @@ createApp({
                 penColor: 'rgb(0, 0, 0)'
             });
 
-            // Store a named reference to the resize handler so beforeUnmount() can
-            // remove it. Using an anonymous arrow function here was the original bug —
-            // anonymous functions cannot be unregistered, causing a memory leak.
+            // Store handler by name so beforeUnmount() can remove it.
+            // The original anonymous arrow function could never be unregistered.
             this._resizeHandler = () => {
                 const data = this.signaturePad.toData();
                 canvas.width  = container.offsetWidth || 600;
@@ -196,18 +191,9 @@ createApp({
             this.showStateSuggestions = true;
         },
 
-        /**
-         * Called when the user manually edits the printed name field.
-         * Sets a flag so the fullName watcher stops auto-populating the field,
-         * preserving the user's intentional customisation.
-         */
-        onPrintedNameInput() {
-            this._printedNameManuallyEdited = true;
-        },
-
         // NOTE: onStateBlur() and hideStateSuggestions() were previously defined here
-        // but were never called by the template (the state field uses @focusin/@focusout
-        // on the container div instead). They have been removed to avoid confusion.
+        // but were never called — the template uses @focusin/@focusout on the container
+        // div instead. Removed to avoid confusion about which handler is active.
 
         selectState(s) {
             this.formData.state = s.abbr;
@@ -217,6 +203,14 @@ createApp({
         dismissModal() {
             this.showSuccessModal = false;
             this.resetForm();
+        },
+
+        /**
+         * Called when the user manually edits the printed name field.
+         * Prevents the fullName watcher from overwriting their custom value.
+         */
+        onPrintedNameInput() {
+            this._printedNameManuallyEdited = true;
         },
         
         async generatePDF() {
@@ -422,21 +416,15 @@ createApp({
         
         async submitForm() {
             this.errorMessage = '';
-
-            // ---------------------------------------------------------------
-            // JS-side validation — a second layer of defence on top of the
-            // HTML `required` / `pattern` attributes, which can be bypassed
-            // by editing the DOM or calling fetch() directly.
-            // ---------------------------------------------------------------
-
-            // Signature must be drawn
+            
+            // Signature check
             if (this.signaturePad.isEmpty()) {
                 this.errorMessage = 'Please provide your signature before submitting.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
-
-            // Initials: check for presence AND non-whitespace content
+            
+            // Initials: trim first so whitespace-only strings ("   ") are caught
             const initA = this.formData.initialsA.trim();
             const initB = this.formData.initialsB.trim();
             const initC = this.formData.initialsC.trim();
@@ -446,14 +434,14 @@ createApp({
                 return;
             }
 
-            // State: must be a recognised US abbreviation (guards against "XX" etc.)
+            // State: must be a recognised US abbreviation (guards against freeform text like "XX")
             if (!VALID_STATE_ABBRS.has(this.formData.state.toUpperCase())) {
                 this.errorMessage = 'Please enter a valid US state abbreviation (e.g. UT, CA).';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
 
-            // ZIP: 5 digits or 5+4 format — HTML pattern alone is bypassable
+            // ZIP: JS-side check because HTML pattern attributes can be bypassed via DevTools
             const zipPattern = /^\d{5}(-\d{4})?$/;
             if (!zipPattern.test(this.formData.zip.trim())) {
                 this.errorMessage = 'Please enter a valid ZIP code (e.g. 84101 or 84101-1234).';
@@ -461,7 +449,7 @@ createApp({
                 return;
             }
 
-            // Phone: basic sanity check — at least 10 digits present
+            // Phone: require at least 10 digits regardless of formatting characters
             const digitsOnly = this.formData.phone.replace(/\D/g, '');
             if (digitsOnly.length < 10) {
                 this.errorMessage = 'Please enter a valid phone number with at least 10 digits.';
@@ -469,7 +457,7 @@ createApp({
                 return;
             }
 
-            // Printed name must not be blank/whitespace
+            // Printed name must not be blank or whitespace-only
             if (!this.formData.printedName.trim()) {
                 this.errorMessage = 'Please enter your printed name.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -497,8 +485,7 @@ createApp({
                     },
                     disclosures: this.formData.disclosures,
                     initials: {
-                        // Use the trimmed values validated above
-                        sectionA: initA,
+                        sectionA: initA,   // trimmed values from validation above
                         sectionB: initB,
                         sectionC: initC
                     },
@@ -552,7 +539,7 @@ createApp({
                 printedName: '',
                 signatureDate: getTodayDate()
             };
-            // Reset the manual-edit flag so the watcher auto-populates again on next use
+            // Reset manual-edit flag so the fullName watcher auto-fills again on next use
             this._printedNameManuallyEdited = false;
             this.signaturePad.clear();
             this.errorMessage = '';
