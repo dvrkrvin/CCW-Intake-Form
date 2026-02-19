@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Moto Service Intake - Charged Cycle Works</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ── Inline validation styles ── */
+        .field-error {
+            color: #c0392b;
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .field-error::before {
+            content: '⚠';
+            font-size: 11px;
+        }
+        input.invalid,
+        textarea.invalid,
+        select.invalid {
+            border-color: #c0392b !important;
+            background-color: #fff8f8 !important;
+        }
+        input.valid,
+        textarea.valid {
+            border-color: #27ae60 !important;
+        }
+        .initials-box input.invalid {
+            border-color: #c0392b !important;
+            background-color: #fff8f8 !important;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
@@ -16,7 +45,7 @@
             <span class="header-title">Service Intake Form</span>
         </div>
     </div>
-    
+
     <div id="app">
 
         <!-- Success Modal -->
@@ -28,7 +57,7 @@
                 <div class="modal-title">Request Received</div>
                 <div class="modal-body">
                     Thank you for choosing Charged Cycle Works Service.<br>
-                    Please see a memeber of our team to complete check-in.
+                    Please see a member of our team to complete check-in.
                 </div>
                 <button class="modal-dismiss" @click="dismissModal">Dismiss</button>
             </div>
@@ -37,60 +66,121 @@
         <div class="container">
             <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
-            <form @submit.prevent="submitForm">
-                <!-- Customer Information -->
+            <form @submit.prevent="submitForm" novalidate>
+
+                <!-- ── Customer Information ── -->
                 <h2>Customer Information</h2>
                 <div class="form-section">
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>First Name <span class="required">*</span></label>
-                            <input type="text" v-model="formData.firstName" required>
+                            <input
+                                type="text"
+                                v-model="formData.firstName"
+                                :class="{ invalid: isInvalid('firstName'), valid: !errors.firstName && touched.firstName }"
+                                @input="onNameInput('firstName')"
+                                @blur="touch('firstName')"
+                                autocomplete="given-name"
+                            >
+                            <span v-if="fieldError('firstName')" class="field-error">{{ fieldError('firstName') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Last Name <span class="required">*</span></label>
-                            <input type="text" v-model="formData.lastName" required>
+                            <input
+                                type="text"
+                                v-model="formData.lastName"
+                                :class="{ invalid: isInvalid('lastName'), valid: !errors.lastName && touched.lastName }"
+                                @input="onNameInput('lastName')"
+                                @blur="touch('lastName')"
+                                autocomplete="family-name"
+                            >
+                            <span v-if="fieldError('lastName')" class="field-error">{{ fieldError('lastName') }}</span>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Phone Number <span class="required">*</span></label>
-                            <input type="tel" v-model="formData.phone" required>
+                            <input
+                                type="tel"
+                                v-model="formData.phone"
+                                :class="{ invalid: isInvalid('phone'), valid: !errors.phone && touched.phone }"
+                                @input="onPhoneInput"
+                                @blur="touch('phone')"
+                                placeholder="(801) 555-0100"
+                                maxlength="14"
+                                autocomplete="tel"
+                            >
+                            <span v-if="fieldError('phone')" class="field-error">{{ fieldError('phone') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Email Address <span class="required">*</span></label>
-                            <input type="email" v-model="formData.email" required>
+                            <input
+                                type="email"
+                                v-model="formData.email"
+                                :class="{ invalid: isInvalid('email'), valid: !errors.email && touched.email }"
+                                @blur="touch('email')"
+                                autocomplete="email"
+                            >
+                            <span v-if="fieldError('email')" class="field-error">{{ fieldError('email') }}</span>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label>Address Line 1 <span class="required">*</span></label>
-                            <input type="text" v-model="formData.address1" required placeholder="Street address">
+                            <input
+                                type="text"
+                                v-model="formData.address1"
+                                :class="{ invalid: isInvalid('address1'), valid: !errors.address1 && touched.address1 }"
+                                @blur="touch('address1')"
+                                placeholder="Street address"
+                                autocomplete="address-line1"
+                            >
+                            <span v-if="fieldError('address1')" class="field-error">{{ fieldError('address1') }}</span>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label>Address Line 2</label>
-                            <input type="text" v-model="formData.address2" placeholder="Apt, suite, unit, etc. (optional)">
+                            <input
+                                type="text"
+                                v-model="formData.address2"
+                                placeholder="Apt, suite, unit, etc. (optional)"
+                                autocomplete="address-line2"
+                            >
                         </div>
                     </div>
+
                     <div class="form-row city-state-zip-row">
                         <div class="form-group city-field">
                             <label>City <span class="required">*</span></label>
-                            <input type="text" v-model="formData.city" required>
+                            <input
+                                type="text"
+                                v-model="formData.city"
+                                :class="{ invalid: isInvalid('city'), valid: !errors.city && touched.city }"
+                                @blur="touch('city')"
+                                autocomplete="address-level2"
+                            >
+                            <span v-if="fieldError('city')" class="field-error">{{ fieldError('city') }}</span>
                         </div>
+
                         <div
-                          class="form-group state-field"
-                          @focusin="showStateSuggestions = true"
-                          @focusout="showStateSuggestions = false"
+                            class="form-group state-field"
+                            ref="stateField"
+                            @focusin="showStateSuggestions = true"
                         >
                             <label>State <span class="required">*</span></label>
                             <input
                                 type="text"
                                 v-model="formData.state"
-                                required
-                                placeholder="State"
+                                :class="{ invalid: isInvalid('state'), valid: !errors.state && touched.state }"
+                                placeholder="ST"
                                 maxlength="2"
                                 @input="onStateInput"
+                                @blur="onStateBlur"
                                 autocomplete="off"
                             />
                             <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
@@ -104,24 +194,45 @@
                                     <span class="state-name">{{ s.name }}</span>
                                 </div>
                             </div>
+                            <span v-if="fieldError('state')" class="field-error">{{ fieldError('state') }}</span>
                         </div>
+
                         <div class="form-group">
                             <label>ZIP Code <span class="required">*</span></label>
-                            <input type="text" v-model="formData.zip" required pattern="\d{5}(-\d{4})?" placeholder="" maxlength="10">
+                            <input
+                                type="text"
+                                v-model="formData.zip"
+                                :class="{ invalid: isInvalid('zip'), valid: !errors.zip && touched.zip }"
+                                @input="onZipInput"
+                                @blur="touch('zip')"
+                                placeholder="84101"
+                                maxlength="10"
+                                inputmode="numeric"
+                                autocomplete="postal-code"
+                            >
+                            <span v-if="fieldError('zip')" class="field-error">{{ fieldError('zip') }}</span>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label>Requested Service <span class="required">*</span></label>
-                            <textarea v-model="formData.requestedService" required placeholder="Please describe the service you need..."></textarea>
+                            <textarea
+                                v-model="formData.requestedService"
+                                :class="{ invalid: isInvalid('requestedService'), valid: !errors.requestedService && touched.requestedService }"
+                                @blur="touch('requestedService')"
+                                placeholder="Please describe the service you need..."
+                            ></textarea>
+                            <span v-if="fieldError('requestedService')" class="field-error">{{ fieldError('requestedService') }}</span>
                         </div>
                     </div>
+
                 </div>
 
-                <!-- Disclosures and Authorization -->
+                <!-- ── Disclosures and Authorization ── -->
                 <h2>Disclosures and Authorization</h2>
                 <div class="terms-section">
-                    
+
                     <!-- Section A -->
                     <div class="disclosure-box">
                         <h4>A. SAFETY AND BATTERY DISCLOSURES (check any that apply)</h4>
@@ -144,49 +255,60 @@
                         </p>
                         <div class="initials-box">
                             <label>Initials <span class="required">*</span></label>
-                            <input type="text" v-model="formData.initialsA" maxlength="3" required>
+                            <input
+                                type="text"
+                                v-model="formData.initialsA"
+                                :class="{ invalid: isInvalid('initialsA') }"
+                                @input="onInitialsInput('initialsA')"
+                                @blur="touch('initialsA')"
+                                maxlength="3"
+                                placeholder="ABC"
+                            >
+                            <span v-if="fieldError('initialsA')" class="field-error">{{ fieldError('initialsA') }}</span>
                         </div>
                     </div>
 
                     <!-- Section B -->
                     <div class="disclosure-box">
                         <h4>B. AUTHORIZATION, TESTING, AND PAYMENT</h4>
-                        <p class="terms-text">
-                            Diagnostic minimum: $99 (charged even if repairs are declined). Labor: $159/hr unless a written flat-rate quote is provided for a specific scope.
-                        </p>
-                        <p class="terms-text">
-                            If additional time is required beyond a flat-rate quote due to hidden damage or complications, we will attempt to contact you for approval before proceeding. Additional time is billed at $159/hr if approved.
-                        </p>
-                        <p class="terms-text">
-                            No work beyond the authorized estimate or quote without written approval (signature, email, or text/SMS from the number on file).
-                        </p>
-                        <p class="terms-text">
-                            Testing authorized (bench and short test ride when safe). Payment due before release. Storage after 7 days: $20/day.
-                        </p>
-                        <p class="terms-text">
-                            Shop is not responsible for personal items or loose accessories left with the bike. See Terms and Conditions below.
-                        </p>
+                        <p class="terms-text">Diagnostic minimum: $99 (charged even if repairs are declined). Labor: $159/hr unless a written flat-rate quote is provided for a specific scope.</p>
+                        <p class="terms-text">If additional time is required beyond a flat-rate quote due to hidden damage or complications, we will attempt to contact you for approval before proceeding. Additional time is billed at $159/hr if approved.</p>
+                        <p class="terms-text">No work beyond the authorized estimate or quote without written approval (signature, email, or text/SMS from the number on file).</p>
+                        <p class="terms-text">Testing authorized (bench and short test ride when safe). Payment due before release. Storage after 7 days: $20/day.</p>
+                        <p class="terms-text">Shop is not responsible for personal items or loose accessories left with the bike. See Terms and Conditions below.</p>
                         <div class="initials-box">
                             <label>Initials <span class="required">*</span></label>
-                            <input type="text" v-model="formData.initialsB" maxlength="3" required>
+                            <input
+                                type="text"
+                                v-model="formData.initialsB"
+                                :class="{ invalid: isInvalid('initialsB') }"
+                                @input="onInitialsInput('initialsB')"
+                                @blur="touch('initialsB')"
+                                maxlength="3"
+                                placeholder="ABC"
+                            >
+                            <span v-if="fieldError('initialsB')" class="field-error">{{ fieldError('initialsB') }}</span>
                         </div>
                     </div>
 
                     <!-- Section C -->
                     <div class="disclosure-box">
                         <h4>C. QUALITY CONTROL AND OPERATIONAL ACCESS</h4>
-                        <p class="terms-text">
-                            Customer agrees to leave all keys, batteries, information, and critical operating components (e.g. fobs or chargers) required to operate the bike.
-                        </p>
-                        <p class="terms-text">
-                            If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.
-                        </p>
-                        <p class="terms-text">
-                            Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.
-                        </p>
+                        <p class="terms-text">Customer agrees to leave all keys, batteries, information, and critical operating components (e.g. fobs or chargers) required to operate the bike.</p>
+                        <p class="terms-text">If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.</p>
+                        <p class="terms-text">Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.</p>
                         <div class="initials-box">
                             <label>Initials <span class="required">*</span></label>
-                            <input type="text" v-model="formData.initialsC" maxlength="3" required>
+                            <input
+                                type="text"
+                                v-model="formData.initialsC"
+                                :class="{ invalid: isInvalid('initialsC') }"
+                                @input="onInitialsInput('initialsC')"
+                                @blur="touch('initialsC')"
+                                maxlength="3"
+                                placeholder="ABC"
+                            >
+                            <span v-if="fieldError('initialsC')" class="field-error">{{ fieldError('initialsC') }}</span>
                         </div>
                     </div>
 
@@ -195,38 +317,28 @@
                     <div class="terms-text">
                         <h4>1. Estimates and authorization</h4>
                         <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the total must be approved in writing (signature, email, or text/SMS from the number on file). Authorization records are kept with the repair order.</p>
-
                         <h4>2. Diagnostic minimum and disassembly</h4>
                         <p>The $99 diagnostic and intake minimum covers check-in, basic safety inspection, and initial diagnostics and is charged even if repairs are declined. Some faults require disassembly to confirm. Parts removed for inspection may not be reinstalled until authorized.</p>
-
                         <h4>3. High-voltage and lithium battery safety</h4>
                         <p>Lithium systems can fail without warning. If the shop determines a battery, wiring, or high-voltage component is unsafe, service may be refused and the bike may be released unrepaired. Customer authorizes the shop to isolate power, remove the battery when necessary, and store it in a safe area. Bikes must be dropped off with a state of charge between 20% and 80%. The shop is not responsible for battery degradation, cell imbalance, or discharge-related failure for bikes dropped off outside of this healthy range. If a bike is received below 40%, the customer must provide a functional charger; otherwise, the shop is not liable for battery health or any issues resulting from the battery sitting in a discharged state. Hidden damage from water, impact, corrosion, or previous overheating may not be discoverable until disassembly.</p>
-
                         <h4>4. Aftermarket and customer-supplied parts</h4>
                         <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility and safety issues. The shop is not responsible for failures caused by non-OEM parts, tuning, firmware changes, or wiring modifications. Additional diagnostics may be required to identify modification-related faults.</p>
-
                         <h4>5. Testing and intermittent conditions</h4>
                         <p>Customer authorizes bench testing and limited test ride when safe and necessary to verify repairs. Intermittent symptoms may not reproduce. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under test conditions.</p>
-
                         <h4>6. Warranty</h4>
                         <p>Unless otherwise stated on the invoice, workmanship is warranted for 30 days from completion for the specific repair performed. Warranty does not cover abuse, competition use, water intrusion, impact damage, altered firmware or tuning after service, customer modifications, or unrelated failures. Manufacturer parts warranty is handled per manufacturer policy when applicable.</p>
-
                         <h4>7. Storage, fees, and release</h4>
                         <p>Bikes are released only after payment in full. The first 7 calendar days after completion notice are free, then storage is $20 per day. If a bike is not picked up, the shop may pursue remedies allowed by applicable state law, including lien processes.</p>
-
                         <h4>8. Property, photos, and data</h4>
                         <p>Remove personal items and removable accessories before service. The shop is not responsible for loss or damage to personal property or unsecured accessories left on the bike. The shop may take photos for documentation and quality control. Promotional use requires separate consent. Customer authorizes access to diagnostic data (logs, firmware versions, app-based diagnostics) as needed for service.</p>
-
                         <h4>9. Right to refuse service and limitation of liability</h4>
                         <p>The shop may refuse service for safety concerns, undisclosed hazards, abusive behavior, or if the repair is not economically or technically feasible. To the extent allowed by law, the shop is not responsible for incidental or consequential damages, including loss of use. Service work may reveal additional issues during disassembly and testing, especially on modified or water-exposed bikes.</p>
-
-                        <p style="margin-top: 20px; font-style: italic; font-size: 12px;">
-                            Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.
-                        </p>
+                        <p style="margin-top: 20px; font-style: italic; font-size: 12px;">Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.</p>
                     </div>
+
                 </div>
 
-                <!-- Signature Section -->
+                <!-- ── Signature Section ── -->
                 <div class="signature-section">
                     <h3>SIGNATURE</h3>
                     <p class="terms-text">
@@ -242,11 +354,25 @@
                     <div class="signature-date-row">
                         <div class="form-group">
                             <label>Printed Name <span class="required">*</span></label>
-                            <input type="text" v-model="formData.printedName" required>
+                            <input
+                                type="text"
+                                v-model="formData.printedName"
+                                :class="{ invalid: isInvalid('printedName'), valid: !errors.printedName && touched.printedName }"
+                                @blur="touch('printedName')"
+                            >
+                            <span v-if="fieldError('printedName')" class="field-error">{{ fieldError('printedName') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Date <span class="required">*</span></label>
-                            <input type="text" v-model="formData.signatureDate" required>
+                            <input
+                                type="text"
+                                v-model="formData.signatureDate"
+                                :class="{ invalid: isInvalid('signatureDate'), valid: !errors.signatureDate && touched.signatureDate }"
+                                @blur="touch('signatureDate')"
+                                placeholder="MM/DD/YYYY"
+                                maxlength="10"
+                            >
+                            <span v-if="fieldError('signatureDate')" class="field-error">{{ fieldError('signatureDate') }}</span>
                         </div>
                     </div>
                 </div>
@@ -255,6 +381,7 @@
                     <span v-if="!isSubmitting">Submit Service Intake Form</span>
                     <span v-else><span class="loading"></span> Submitting...</span>
                 </button>
+
             </form>
         </div>
     </div>
