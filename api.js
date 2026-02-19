@@ -1,19 +1,16 @@
 // API module for communicating with the Python backend
 const api = {
-    // Base URL for your Python server.
-    // TODO: In a production environment consider reading this from a build-time
-    // environment variable or a small config object so the URL doesn't need to
-    // be hand-edited in source before each deployment.
+    // Base URL for your Python server
+    // TODO: In production, consider reading this from a config object rather than
+    // hardcoding it here so deploys don't require manual source edits.
     baseUrl: 'https://aiservicewriter-production.up.railway.app',
 
-    // Default timeout (ms) for all fetch requests.
-    // Without a timeout, a stalled server can hold the submit button disabled
-    // indefinitely while `isSubmitting` stays true in the Vue component.
+    // Timeout (ms) for all requests. Without this, a stalled server holds
+    // isSubmitting=true indefinitely, leaving the submit button permanently disabled.
     requestTimeoutMs: 30000,
 
     /**
-     * Wraps fetch() with an AbortController-based timeout so hung requests
-     * are cancelled and a meaningful error is surfaced to the user.
+     * Wraps fetch() with an AbortController timeout.
      * @param {string} url
      * @param {RequestInit} options
      * @returns {Promise<Response>}
@@ -52,7 +49,7 @@ const api = {
             const fileName = `service_intake_${formData.customerInfo.lastName}_${Date.now()}.pdf`;
             form.append('pdf', pdfBlob, fileName);
             
-            // Send to server — uses fetchWithTimeout to prevent indefinite hangs
+            // Send to server
             const response = await this.fetchWithTimeout(`${this.baseUrl}/run-task`, {
                 method: 'POST',
                 body: form,
