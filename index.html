@@ -76,7 +76,7 @@
                                 v-model="formData.firstName"
                                 :class="{ invalid: isInvalid('firstName') }"
                                 @input="onNameInput('firstName')"
-                                @blur="touch('firstName')"
+                                @blur="onNameBlur('firstName')"
                                 autocomplete="given-name"
                             >
                             <span v-if="fieldError('firstName')" class="field-error">{{ fieldError('firstName') }}</span>
@@ -88,7 +88,7 @@
                                 v-model="formData.lastName"
                                 :class="{ invalid: isInvalid('lastName') }"
                                 @input="onNameInput('lastName')"
-                                @blur="touch('lastName')"
+                                @blur="onNameBlur('lastName')"
                                 autocomplete="family-name"
                             >
                             <span v-if="fieldError('lastName')" class="field-error">{{ fieldError('lastName') }}</span>
@@ -177,12 +177,18 @@
                                 @blur="onStateBlur"
                                 autocomplete="off"
                             />
-                            <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
+                            <div
+                                v-if="showStateSuggestions && filteredStates.length"
+                                class="state-dropdown"
+                                @touchstart="onDropdownTouchStart"
+                                @touchmove="onDropdownTouchMove"
+                            >
                                 <div
                                     v-for="s in filteredStates"
                                     :key="s.abbr"
                                     class="state-option"
                                     @pointerdown.prevent="selectState(s)"
+                                    @touchend="onDropdownItemTouchEnd(s, $event)"
                                 >
                                     <span class="state-abbr">{{ s.abbr }}</span>
                                     <span class="state-name">{{ s.name }}</span>
