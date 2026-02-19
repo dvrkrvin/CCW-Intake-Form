@@ -5,31 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Moto Service Intake - Charged Cycle Works</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* ── Inline validation styles ── */
-        .field-error {
-            color: #c0392b;
-            font-size: 12px;
-            margin-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .field-error::before {
-            content: '⚠';
-            font-size: 11px;
-        }
-        input.invalid,
-        textarea.invalid,
-        select.invalid {
-            border-color: #c0392b !important;
-            background-color: #fff8f8 !important;
-        }
-        .initials-box input.invalid {
-            border-color: #c0392b !important;
-            background-color: #fff8f8 !important;
-        }
-    </style>
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
@@ -64,7 +39,7 @@
 
             <form @submit.prevent="submitForm" novalidate>
 
-                <!-- ── Customer Information ── -->
+                <!-- Customer Information -->
                 <h2>Customer Information</h2>
                 <div class="form-section">
 
@@ -74,24 +49,20 @@
                             <input
                                 type="text"
                                 v-model="formData.firstName"
-                                :class="{ invalid: isInvalid('firstName') }"
                                 @input="onNameInput('firstName')"
-                                @blur="onNameBlur('firstName')"
+                                @blur="onNameBlur"
                                 autocomplete="given-name"
                             >
-                            <span v-if="fieldError('firstName')" class="field-error">{{ fieldError('firstName') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Last Name <span class="required">*</span></label>
                             <input
                                 type="text"
                                 v-model="formData.lastName"
-                                :class="{ invalid: isInvalid('lastName') }"
                                 @input="onNameInput('lastName')"
-                                @blur="onNameBlur('lastName')"
+                                @blur="onNameBlur"
                                 autocomplete="family-name"
                             >
-                            <span v-if="fieldError('lastName')" class="field-error">{{ fieldError('lastName') }}</span>
                         </div>
                     </div>
 
@@ -101,24 +72,18 @@
                             <input
                                 type="tel"
                                 v-model="formData.phone"
-                                :class="{ invalid: isInvalid('phone') }"
                                 @input="onPhoneInput"
-                                @blur="touch('phone')"
                                 maxlength="14"
                                 autocomplete="tel"
                             >
-                            <span v-if="fieldError('phone')" class="field-error">{{ fieldError('phone') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Email Address <span class="required">*</span></label>
                             <input
                                 type="email"
                                 v-model="formData.email"
-                                :class="{ invalid: isInvalid('email') }"
-                                @blur="touch('email')"
                                 autocomplete="email"
                             >
-                            <span v-if="fieldError('email')" class="field-error">{{ fieldError('email') }}</span>
                         </div>
                     </div>
 
@@ -128,12 +93,9 @@
                             <input
                                 type="text"
                                 v-model="formData.address1"
-                                :class="{ invalid: isInvalid('address1') }"
-                                @blur="touch('address1')"
                                 placeholder="Street address"
                                 autocomplete="address-line1"
                             >
-                            <span v-if="fieldError('address1')" class="field-error">{{ fieldError('address1') }}</span>
                         </div>
                     </div>
 
@@ -155,11 +117,8 @@
                             <input
                                 type="text"
                                 v-model="formData.city"
-                                :class="{ invalid: isInvalid('city') }"
-                                @blur="touch('city')"
                                 autocomplete="address-level2"
                             >
-                            <span v-if="fieldError('city')" class="field-error">{{ fieldError('city') }}</span>
                         </div>
 
                         <div
@@ -171,30 +130,22 @@
                             <input
                                 type="text"
                                 v-model="formData.state"
-                                :class="{ invalid: isInvalid('state') }"
                                 maxlength="2"
                                 @input="onStateInput"
                                 @blur="onStateBlur"
                                 autocomplete="off"
                             />
-                            <div
-                                v-if="showStateSuggestions && filteredStates.length"
-                                class="state-dropdown"
-                                @touchstart="onDropdownTouchStart"
-                                @touchmove="onDropdownTouchMove"
-                            >
+                            <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
                                 <div
                                     v-for="s in filteredStates"
                                     :key="s.abbr"
                                     class="state-option"
                                     @pointerdown.prevent="selectState(s)"
-                                    @touchend="onDropdownItemTouchEnd(s, $event)"
                                 >
                                     <span class="state-abbr">{{ s.abbr }}</span>
                                     <span class="state-name">{{ s.name }}</span>
                                 </div>
                             </div>
-                            <span v-if="fieldError('state')" class="field-error">{{ fieldError('state') }}</span>
                         </div>
 
                         <div class="form-group">
@@ -202,14 +153,11 @@
                             <input
                                 type="text"
                                 v-model="formData.zip"
-                                :class="{ invalid: isInvalid('zip') }"
                                 @input="onZipInput"
-                                @blur="touch('zip')"
                                 maxlength="10"
                                 inputmode="numeric"
                                 autocomplete="postal-code"
                             >
-                            <span v-if="fieldError('zip')" class="field-error">{{ fieldError('zip') }}</span>
                         </div>
                     </div>
 
@@ -218,17 +166,14 @@
                             <label>Requested Service <span class="required">*</span></label>
                             <textarea
                                 v-model="formData.requestedService"
-                                :class="{ invalid: isInvalid('requestedService') }"
-                                @blur="touch('requestedService')"
                                 placeholder="Please describe the service you need..."
                             ></textarea>
-                            <span v-if="fieldError('requestedService')" class="field-error">{{ fieldError('requestedService') }}</span>
                         </div>
                     </div>
 
                 </div>
 
-                <!-- ── Disclosures and Authorization ── -->
+                <!-- Disclosures and Authorization -->
                 <h2>Disclosures and Authorization</h2>
                 <div class="terms-section">
 
@@ -257,12 +202,9 @@
                             <input
                                 type="text"
                                 v-model="formData.initialsA"
-                                :class="{ invalid: isInvalid('initialsA') }"
                                 @input="onInitialsInput('initialsA')"
-                                @blur="touch('initialsA')"
                                 maxlength="3"
                             >
-                            <span v-if="fieldError('initialsA')" class="field-error">{{ fieldError('initialsA') }}</span>
                         </div>
                     </div>
 
@@ -279,12 +221,9 @@
                             <input
                                 type="text"
                                 v-model="formData.initialsB"
-                                :class="{ invalid: isInvalid('initialsB') }"
                                 @input="onInitialsInput('initialsB')"
-                                @blur="touch('initialsB')"
                                 maxlength="3"
                             >
-                            <span v-if="fieldError('initialsB')" class="field-error">{{ fieldError('initialsB') }}</span>
                         </div>
                     </div>
 
@@ -299,12 +238,9 @@
                             <input
                                 type="text"
                                 v-model="formData.initialsC"
-                                :class="{ invalid: isInvalid('initialsC') }"
                                 @input="onInitialsInput('initialsC')"
-                                @blur="touch('initialsC')"
                                 maxlength="3"
                             >
-                            <span v-if="fieldError('initialsC')" class="field-error">{{ fieldError('initialsC') }}</span>
                         </div>
                     </div>
 
@@ -334,7 +270,7 @@
 
                 </div>
 
-                <!-- ── Signature Section ── -->
+                <!-- Signature Section -->
                 <div class="signature-section">
                     <h3>SIGNATURE</h3>
                     <p class="terms-text">
@@ -353,22 +289,16 @@
                             <input
                                 type="text"
                                 v-model="formData.printedName"
-                                :class="{ invalid: isInvalid('printedName') }"
-                                @blur="touch('printedName')"
                             >
-                            <span v-if="fieldError('printedName')" class="field-error">{{ fieldError('printedName') }}</span>
                         </div>
                         <div class="form-group">
                             <label>Date <span class="required">*</span></label>
                             <input
                                 type="text"
                                 v-model="formData.signatureDate"
-                                :class="{ invalid: isInvalid('signatureDate') }"
-                                @blur="touch('signatureDate')"
                                 placeholder="MM/DD/YYYY"
                                 maxlength="10"
                             >
-                            <span v-if="fieldError('signatureDate')" class="field-error">{{ fieldError('signatureDate') }}</span>
                         </div>
                     </div>
                 </div>
