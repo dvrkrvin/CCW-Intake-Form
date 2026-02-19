@@ -1,35 +1,7 @@
 // API module for communicating with the Python backend
 const api = {
     // Base URL for your Python server
-    // TODO: In production, consider reading this from a config object rather than
-    // hardcoding it here so deploys don't require manual source edits.
     baseUrl: 'https://aiservicewriter-production.up.railway.app',
-
-    // Timeout (ms) for all requests. Without this, a stalled server holds
-    // isSubmitting=true indefinitely, leaving the submit button permanently disabled.
-    requestTimeoutMs: 30000,
-
-    /**
-     * Wraps fetch() with an AbortController timeout.
-     * @param {string} url
-     * @param {RequestInit} options
-     * @returns {Promise<Response>}
-     */
-    async fetchWithTimeout(url, options = {}) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), this.requestTimeoutMs);
-        try {
-            const response = await fetch(url, { ...options, signal: controller.signal });
-            return response;
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                throw new Error(`Request timed out after ${this.requestTimeoutMs / 1000}s. Please try again.`);
-            }
-            throw err;
-        } finally {
-            clearTimeout(timer);
-        }
-    },
     
     /**
      * Submit service intake form with customer data and signed PDF
@@ -50,7 +22,7 @@ const api = {
             form.append('pdf', pdfBlob, fileName);
             
             // Send to server
-            const response = await this.fetchWithTimeout(`${this.baseUrl}/run-task`, {
+            const response = await fetch(`${this.baseUrl}/run-task`, {
                 method: 'POST',
                 body: form,
             });
@@ -77,7 +49,7 @@ const api = {
             };
             
             // Send to server with JSON
-            const response = await this.fetchWithTimeout(`${this.baseUrl}/run-task`, {
+            const response = await fetch(`${this.baseUrl}/run-task`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -109,7 +81,7 @@ const api = {
      */
     async healthCheck() {
         try {
-            const response = await this.fetchWithTimeout(`${this.baseUrl}/api/health`, {
+            const response = await fetch(`${this.baseUrl}/api/health`, {
                 method: 'GET',
             });
             
