@@ -25,10 +25,6 @@
             border-color: #c0392b !important;
             background-color: #fff8f8 !important;
         }
-        input.valid,
-        textarea.valid {
-            border-color: #27ae60 !important;
-        }
         .initials-box input.invalid {
             border-color: #c0392b !important;
             background-color: #fff8f8 !important;
@@ -78,7 +74,7 @@
                             <input
                                 type="text"
                                 v-model="formData.firstName"
-                                :class="{ invalid: isInvalid('firstName'), valid: !errors.firstName && touched.firstName }"
+                                :class="{ invalid: isInvalid('firstName') }"
                                 @input="onNameInput('firstName')"
                                 @blur="touch('firstName')"
                                 autocomplete="given-name"
@@ -90,7 +86,7 @@
                             <input
                                 type="text"
                                 v-model="formData.lastName"
-                                :class="{ invalid: isInvalid('lastName'), valid: !errors.lastName && touched.lastName }"
+                                :class="{ invalid: isInvalid('lastName') }"
                                 @input="onNameInput('lastName')"
                                 @blur="touch('lastName')"
                                 autocomplete="family-name"
@@ -105,10 +101,9 @@
                             <input
                                 type="tel"
                                 v-model="formData.phone"
-                                :class="{ invalid: isInvalid('phone'), valid: !errors.phone && touched.phone }"
+                                :class="{ invalid: isInvalid('phone') }"
                                 @input="onPhoneInput"
                                 @blur="touch('phone')"
-                                placeholder="(801) 555-0100"
                                 maxlength="14"
                                 autocomplete="tel"
                             >
@@ -119,7 +114,7 @@
                             <input
                                 type="email"
                                 v-model="formData.email"
-                                :class="{ invalid: isInvalid('email'), valid: !errors.email && touched.email }"
+                                :class="{ invalid: isInvalid('email') }"
                                 @blur="touch('email')"
                                 autocomplete="email"
                             >
@@ -133,7 +128,7 @@
                             <input
                                 type="text"
                                 v-model="formData.address1"
-                                :class="{ invalid: isInvalid('address1'), valid: !errors.address1 && touched.address1 }"
+                                :class="{ invalid: isInvalid('address1') }"
                                 @blur="touch('address1')"
                                 placeholder="Street address"
                                 autocomplete="address-line1"
@@ -160,7 +155,7 @@
                             <input
                                 type="text"
                                 v-model="formData.city"
-                                :class="{ invalid: isInvalid('city'), valid: !errors.city && touched.city }"
+                                :class="{ invalid: isInvalid('city') }"
                                 @blur="touch('city')"
                                 autocomplete="address-level2"
                             >
@@ -176,8 +171,7 @@
                             <input
                                 type="text"
                                 v-model="formData.state"
-                                :class="{ invalid: isInvalid('state'), valid: !errors.state && touched.state }"
-                                placeholder="ST"
+                                :class="{ invalid: isInvalid('state') }"
                                 maxlength="2"
                                 @input="onStateInput"
                                 @blur="onStateBlur"
@@ -202,10 +196,9 @@
                             <input
                                 type="text"
                                 v-model="formData.zip"
-                                :class="{ invalid: isInvalid('zip'), valid: !errors.zip && touched.zip }"
+                                :class="{ invalid: isInvalid('zip') }"
                                 @input="onZipInput"
                                 @blur="touch('zip')"
-                                placeholder="84101"
                                 maxlength="10"
                                 inputmode="numeric"
                                 autocomplete="postal-code"
@@ -219,7 +212,7 @@
                             <label>Requested Service <span class="required">*</span></label>
                             <textarea
                                 v-model="formData.requestedService"
-                                :class="{ invalid: isInvalid('requestedService'), valid: !errors.requestedService && touched.requestedService }"
+                                :class="{ invalid: isInvalid('requestedService') }"
                                 @blur="touch('requestedService')"
                                 placeholder="Please describe the service you need..."
                             ></textarea>
@@ -262,7 +255,6 @@
                                 @input="onInitialsInput('initialsA')"
                                 @blur="touch('initialsA')"
                                 maxlength="3"
-                                placeholder="ABC"
                             >
                             <span v-if="fieldError('initialsA')" class="field-error">{{ fieldError('initialsA') }}</span>
                         </div>
@@ -285,7 +277,6 @@
                                 @input="onInitialsInput('initialsB')"
                                 @blur="touch('initialsB')"
                                 maxlength="3"
-                                placeholder="ABC"
                             >
                             <span v-if="fieldError('initialsB')" class="field-error">{{ fieldError('initialsB') }}</span>
                         </div>
@@ -306,7 +297,6 @@
                                 @input="onInitialsInput('initialsC')"
                                 @blur="touch('initialsC')"
                                 maxlength="3"
-                                placeholder="ABC"
                             >
                             <span v-if="fieldError('initialsC')" class="field-error">{{ fieldError('initialsC') }}</span>
                         </div>
@@ -357,7 +347,7 @@
                             <input
                                 type="text"
                                 v-model="formData.printedName"
-                                :class="{ invalid: isInvalid('printedName'), valid: !errors.printedName && touched.printedName }"
+                                :class="{ invalid: isInvalid('printedName') }"
                                 @blur="touch('printedName')"
                             >
                             <span v-if="fieldError('printedName')" class="field-error">{{ fieldError('printedName') }}</span>
@@ -367,7 +357,7 @@
                             <input
                                 type="text"
                                 v-model="formData.signatureDate"
-                                :class="{ invalid: isInvalid('signatureDate'), valid: !errors.signatureDate && touched.signatureDate }"
+                                :class="{ invalid: isInvalid('signatureDate') }"
                                 @blur="touch('signatureDate')"
                                 placeholder="MM/DD/YYYY"
                                 maxlength="10"
