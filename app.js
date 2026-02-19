@@ -404,6 +404,7 @@ createApp({
                 
                 if (response.success) {
                     this.showSuccessModal = true;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     this.errorMessage = response.message || 'An error occurred while submitting the form. Please try again.';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
