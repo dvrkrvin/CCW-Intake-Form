@@ -187,8 +187,7 @@ createApp({
 
     watch: {
         fullName(newName) {
-            // Auto-populate printed name only when both name fields are fresh/empty
-            if (newName && !this.formData.printedName) {
+            if (newName) {
                 this.formData.printedName = newName;
             }
         }
