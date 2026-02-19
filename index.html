@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Moto Service Intake - Charged Cycle Works</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- CDN dependencies — pinned to exact versions to avoid surprise breaking changes.
-         For added security, SRI integrity hashes can be generated at https://www.srihash.org/
-         and added as integrity="sha384-..." crossorigin="anonymous" attributes. -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 </head>
@@ -47,46 +44,41 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>First Name <span class="required">*</span></label>
-                            <input type="text" v-model="formData.firstName" required maxlength="50">
+                            <input type="text" v-model="formData.firstName" required>
                         </div>
                         <div class="form-group">
                             <label>Last Name <span class="required">*</span></label>
-                            <input type="text" v-model="formData.lastName" required maxlength="50">
+                            <input type="text" v-model="formData.lastName" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Phone Number <span class="required">*</span></label>
-                            <input type="tel" v-model="formData.phone" required maxlength="20"
-                                   placeholder="(555) 555-5555">
+                            <input type="tel" v-model="formData.phone" required>
                         </div>
                         <div class="form-group">
                             <label>Email Address <span class="required">*</span></label>
-                            <input type="email" v-model="formData.email" required maxlength="100">
+                            <input type="email" v-model="formData.email" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label>Address Line 1 <span class="required">*</span></label>
-                            <input type="text" v-model="formData.address1" required placeholder="Street address" maxlength="100">
+                            <input type="text" v-model="formData.address1" required placeholder="Street address">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label>Address Line 2</label>
-                            <input type="text" v-model="formData.address2" placeholder="Apt, suite, unit, etc. (optional)" maxlength="100">
+                            <input type="text" v-model="formData.address2" placeholder="Apt, suite, unit, etc. (optional)">
                         </div>
                     </div>
                     <div class="form-row city-state-zip-row">
                         <div class="form-group city-field">
                             <label>City <span class="required">*</span></label>
-                            <input type="text" v-model="formData.city" required maxlength="60">
+                            <input type="text" v-model="formData.city" required>
                         </div>
-                        <!-- ref="stateField" is required by handleClickOutside() in app.js
-                             to detect clicks outside the dropdown. Without it,
-                             this.$refs.stateField is undefined and the dropdown never closes. -->
                         <div
-                          ref="stateField"
                           class="form-group state-field"
                           @focusin="showStateSuggestions = true"
                           @focusout="showStateSuggestions = false"
@@ -250,10 +242,7 @@
                     <div class="signature-date-row">
                         <div class="form-group">
                             <label>Printed Name <span class="required">*</span></label>
-                            <!-- @input sets a flag so the fullName watcher stops auto-filling
-                                 this field once the user has made a manual change -->
-                            <input type="text" v-model="formData.printedName" required maxlength="100"
-                                   @input="onPrintedNameInput">
+                            <input type="text" v-model="formData.printedName" required>
                         </div>
                         <div class="form-group">
                             <label>Date <span class="required">*</span></label>
