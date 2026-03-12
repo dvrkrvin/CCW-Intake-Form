@@ -1,7 +1,8 @@
 // API module for communicating with the Python backend
 const api = {
     // Base URL for your Python server
-    baseUrl: 'https://aiservicewriter-production.up.railway.app',
+    // baseUrl: 'https://aiservicewriter-production.up.railway.app',
+    baseUrl: 'https://ai-service-writer.fly.dev',
     
     /**
      * Submit service intake form with customer data and signed PDF
