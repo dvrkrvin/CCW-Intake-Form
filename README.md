@@ -1,6 +1,6 @@
 # E-Moto Service Intake Form
 
-A web-based service intake form system for Charged Cycle Works with digital signature capabilities.
+A web-based service intake form system with digital signature capabilities.
 
 ## Files Included
 
