@@ -234,6 +234,35 @@ textarea:focus {
     transition: all 0.3s;
 }
 
+.warranty-row {
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.warranty-row .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #1d1d1f;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.warranty-row .checkbox-label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.warranty-row .checkbox-hint {
+    font-size: 12px;
+    color: #6e6e73;
+    font-weight: normal;
+}
+
 textarea {
     resize: vertical;
     min-height: 100px;
