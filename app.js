@@ -16,11 +16,11 @@ createApp({
                 state: '',
                 zip: '',
                 requestedService: '',
-                warrantyRequest: false,
                 disclosures: {
                     submerged: false,
                     thermal: false,
-                    impact: false
+                    impact: false,
+                    warrantyRequest: false
                 },
                 initialsA: '',
                 initialsB: '',
