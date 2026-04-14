@@ -16,6 +16,7 @@ createApp({
                 state: '',
                 zip: '',
                 requestedService: '',
+                warrantyRequest: false,
                 disclosures: {
                     submerged: false,
                     thermal: false,
@@ -219,6 +220,9 @@ createApp({
             });
             addSpace(8);
 
+            pdf.setFontSize(9); pdf.setFont(undefined, 'bold');
+            pdf.text(`Warranty Claim: ${this.formData.warrantyRequest ? 'Yes – Customer believes this visit may be covered under warranty' : 'No'}`, margin, yPos); addSpace(10);
+
             checkPageBreak(60);
             pdf.setFontSize(11); pdf.setFont(undefined, 'bold');
             pdf.text('A. SAFETY AND BATTERY DISCLOSURES', margin, yPos); addSpace(6);
@@ -352,7 +356,8 @@ createApp({
                         city:             f.city,
                         state:            f.state,
                         zip:              f.zip,
-                        requestedService: f.requestedService
+                        requestedService: f.requestedService,
+                        warrantyRequest: f.warrantyRequest,
                     },
                     disclosures: f.disclosures,
                     initials: {
@@ -396,6 +401,7 @@ createApp({
                 disclosures: { submerged: false, thermal: false, impact: false },
                 initialsA: '', initialsB: '', initialsC: '',
                 printedName: '',
+                warrantyRequest: false,
                 signatureDate: this.getTodayDate()
             };
             this.signaturePad.clear();
