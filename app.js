@@ -221,7 +221,7 @@ createApp({
             addSpace(8);
 
             pdf.setFontSize(9); pdf.setFont(undefined, 'bold');
-            pdf.text(`Warranty Claim: ${this.formData.warrantyRequest ? 'Yes – Customer believes this visit may be covered under warranty' : 'No'}`, margin, yPos); addSpace(10);
+            pdf.text(`Warranty Claim: ${this.formData.disclosures.warrantyRequest ? 'Yes – Customer believes this visit may be covered under warranty' : 'No'}`, margin, yPos); addSpace(10);
 
             checkPageBreak(60);
             pdf.setFontSize(11); pdf.setFont(undefined, 'bold');
