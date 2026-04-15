@@ -357,7 +357,6 @@ createApp({
                         state:            f.state,
                         zip:              f.zip,
                         requestedService: f.requestedService,
-                        warrantyRequest: f.warrantyRequest,
                     },
                     disclosures: f.disclosures,
                     initials: {
@@ -398,10 +397,9 @@ createApp({
                 firstName: '', lastName: '', phone: '', email: '',
                 address1: '', address2: '', city: '', state: '', zip: '',
                 requestedService: '',
-                disclosures: { submerged: false, thermal: false, impact: false },
+                disclosures: { submerged: false, thermal: false, impact: false, warrantyRequest: false},
                 initialsA: '', initialsB: '', initialsC: '',
                 printedName: '',
-                warrantyRequest: false,
                 signatureDate: this.getTodayDate()
             };
             this.signaturePad.clear();
