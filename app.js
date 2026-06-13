@@ -17,6 +17,7 @@ createApp({
                 zip: '',
                 requestedService: '',
                 disclosures: {
+                    diagFeeAcknowledged: false,
                     submerged: false,
                     thermal: false,
                     impact: false,
@@ -223,6 +224,17 @@ createApp({
             pdf.setFontSize(9); pdf.setFont(undefined, 'bold');
             pdf.text(`Warranty Claim: ${this.formData.disclosures.warrantyRequest ? 'Yes – Customer believes this visit may be covered under warranty' : 'No'}`, margin, yPos); addSpace(10);
 
+            // ── Diagnostic Fee Acknowledgment ────────────────────────────────
+            checkPageBreak(30);
+            pdf.setFontSize(11); pdf.setFont(undefined, 'bold');
+            pdf.text('DIAGNOSTIC & INTAKE MINIMUM', margin, yPos); addSpace(6);
+            pdf.setFontSize(9); pdf.setFont(undefined, 'normal');
+            pdf.splitTextToSize(
+                `[${this.formData.disclosures.diagFeeAcknowledged ? 'X' : ' '}] Customer acknowledged the $99 diagnostic and intake minimum (charged even if repairs are declined).`,
+                maxWidth - 6
+            ).forEach(line => { pdf.text(line, margin + 3, yPos); addSpace(4); });
+            addSpace(6);
+
             checkPageBreak(60);
             pdf.setFontSize(11); pdf.setFont(undefined, 'bold');
             pdf.text('A. SAFETY AND BATTERY DISCLOSURES', margin, yPos); addSpace(6);
@@ -333,6 +345,12 @@ createApp({
                 return;
             }
 
+            if (!f.disclosures.diagFeeAcknowledged) {
+                this.errorMessage = 'Please acknowledge the $99 diagnostic and intake minimum before submitting.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             if (this.signaturePad.isEmpty()) {
                 this.errorMessage = 'Please provide your signature before submitting.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -397,7 +415,7 @@ createApp({
                 firstName: '', lastName: '', phone: '', email: '',
                 address1: '', address2: '', city: '', state: '', zip: '',
                 requestedService: '',
-                disclosures: { submerged: false, thermal: false, impact: false, warrantyRequest: false},
+                disclosures: { diagFeeAcknowledged: false, submerged: false, thermal: false, impact: false, warrantyRequest: false },
                 initialsA: '', initialsB: '', initialsC: '',
                 printedName: '',
                 signatureDate: this.getTodayDate()
