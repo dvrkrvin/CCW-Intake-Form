@@ -571,32 +571,25 @@ input[type="checkbox"] {
 /* ── $99 Fee Callout ─────────────────────────────────────── */
 
 .fee-callout {
-    background: #fff5f5;
-    border: 2px solid #e74c3c;
-    border-left: 4px solid #e74c3c;
+    background: #fffbeb;
+    border: 2px solid #ddd;
+    border-left: 4px solid #d97706;
     border-radius: 0;
     padding: 20px 24px;
     margin-bottom: 20px;
 }
 
-.fee-callout-header {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
 .fee-amount {
     font-size: 2.4rem;
     font-weight: 700;
-    color: #e74c3c;
+    color: #b45309;
     line-height: 1;
 }
 
 .fee-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #c0392b;
+    color: #92400e;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -623,6 +616,6 @@ input[type="checkbox"] {
 .fee-checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #e74c3c;
+    accent-color: #d97706;
     flex-shrink: 0;
 }
