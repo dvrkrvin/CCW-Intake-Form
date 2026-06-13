@@ -571,7 +571,7 @@ input[type="checkbox"] {
 /* ── $99 Fee Callout ─────────────────────────────────────── */
 
 .fee-callout {
-    background: #fffbeb;
+    background: white;
     border: 2px solid #ddd;
     border-left: 4px solid #d97706;
     border-radius: 0;
