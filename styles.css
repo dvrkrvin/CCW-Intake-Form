@@ -196,7 +196,7 @@ h3 {
 .fee-checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #d97706;
+    accent-color: #e74c3c;
     flex-shrink: 0;
 }
 
@@ -322,6 +322,7 @@ textarea:focus {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
+    accent-color: #e74c3c;
 }
 
 .warranty-row .checkbox-hint {
