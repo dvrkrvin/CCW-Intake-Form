@@ -573,7 +573,7 @@ input[type="checkbox"] {
 .fee-callout {
     background: white;
     border: 2px solid #ddd;
-    border-left: 4px solid #d97706;
+    border-left: 4px solid #e74c3c;
     border-radius: 0;
     padding: 20px 24px;
     margin-bottom: 20px;
@@ -582,14 +582,14 @@ input[type="checkbox"] {
 .fee-amount {
     font-size: 2.4rem;
     font-weight: 700;
-    color: #b45309;
+    color: #e74c3c;
     line-height: 1;
 }
 
 .fee-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #92400e;
+    color: #e74c3c;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
