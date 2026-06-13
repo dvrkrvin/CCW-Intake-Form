@@ -227,10 +227,10 @@ createApp({
             // ── Diagnostic Fee Acknowledgment ────────────────────────────────
             checkPageBreak(30);
             pdf.setFontSize(11); pdf.setFont(undefined, 'bold');
-            pdf.text('DIAGNOSTIC & INTAKE MINIMUM', margin, yPos); addSpace(6);
+            pdf.text('SERVICE MINIMUM', margin, yPos); addSpace(6);
             pdf.setFontSize(9); pdf.setFont(undefined, 'normal');
             pdf.splitTextToSize(
-                `[${this.formData.disclosures.diagFeeAcknowledged ? 'X' : ' '}] Customer acknowledged the $99 diagnostic and intake minimum (charged even if repairs are declined).`,
+                `[${this.formData.disclosures.diagFeeAcknowledged ? 'X' : ' '}] Customer acknowledged the $99 service minimum (charged even if repairs are declined or diagnostics are inconclusive).`,
                 maxWidth - 6
             ).forEach(line => { pdf.text(line, margin + 3, yPos); addSpace(4); });
             addSpace(6);
@@ -254,7 +254,7 @@ createApp({
             pdf.setFontSize(11); pdf.text('B. AUTHORIZATION, TESTING, AND PAYMENT', margin, yPos); addSpace(6);
             pdf.setFontSize(8); pdf.setFont(undefined, 'normal');
             [
-                'Diagnostic minimum: $99 (charged even if repairs are declined). Labor: $159/hr unless a written flat-rate quote is provided.',
+                'Service minimum: $99 (charged even if repairs are declined or diagnostics are inconclusive). Labor: $159/hr unless a written flat-rate quote is provided.',
                 'If additional time is required beyond a flat-rate quote due to hidden damage, we will attempt to contact you for approval. Additional time is billed at $159/hr if approved.',
                 'No work beyond the authorized estimate without written approval (signature, email, or text/SMS from the number on file).',
                 'Testing authorized (bench and short test ride when safe). Payment due before release. Storage after 7 days: $20/day.',
@@ -346,7 +346,7 @@ createApp({
             }
 
             if (!f.disclosures.diagFeeAcknowledged) {
-                this.errorMessage = 'Please acknowledge the $99 diagnostic and intake minimum before submitting.';
+                this.errorMessage = 'Please acknowledge the $99 service minimum before submitting.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
