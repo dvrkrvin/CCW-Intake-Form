@@ -60,6 +60,74 @@ body {
     }
 }
 
+/* ── Toggle Slider Styles (With Slight Corner Radius) ────── */
+.toggle-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 35px;
+    padding-bottom: 25px;
+    border-bottom: 2px solid #eee;
+}
+
+.toggle-slider {
+    position: relative;
+    display: flex;
+    background: #f0f0f0;
+    border: 2px solid #2b2b2b;
+    padding: 4px;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 8px; /* Slight corner radius applied to outer frame */
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    color: #555;
+    transition: color 0.3s;
+    border-radius: 6px; /* Matched radius for button highlight fit */
+}
+
+.toggle-btn.active {
+    color: white;
+}
+
+.toggle-indicator {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: calc(50% - 4px);
+    background: #e74c3c;
+    z-index: 1;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border-radius: 6px; /* Matched radius for sliding indicator */
+}
+
+.toggle-indicator.standard {
+    transform: translateX(0);
+}
+
+.toggle-indicator.battery {
+    transform: translateX(100%);
+    background: #d32f2f;
+}
+
+@media (max-width: 480px) {
+    .toggle-btn {
+        font-size: 13px;
+        padding: 12px 10px;
+    }
+}
+/* ────────────────────────────────────────────────────────── */
+
 h1 {
     color: #2b2b2b;
     margin-bottom: 10px;
@@ -126,20 +194,11 @@ h3 {
 .state-option {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.15s;
-}
-
-.state-option {
-    display: flex;
-    align-items: center;
     gap: 14px;
     padding: 10px 16px;
     cursor: pointer;
     font-size: 14px;
+    transition: background 0.15s;
 }
 
 .state-option:hover {
@@ -327,32 +386,6 @@ input[type="checkbox"] {
     cursor: pointer;
 }
 
-.initials-box {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-top: 20px;
-    padding: 18px;
-    background: #f0f0f0;
-    border-radius: 0;
-    border-left: 4px solid #2b2b2b;
-}
-
-.initials-box label {
-    margin: 0;
-    font-weight: 700;
-    color: #2b2b2b;
-}
-
-.initials-box input {
-    width: 100px;
-    text-align: center;
-    font-weight: bold;
-    text-transform: uppercase;
-    background: white;
-    border: 2px solid #2b2b2b;
-}
-
 .terms-text {
     font-size: 13px;
     line-height: 1.7;
@@ -368,6 +401,54 @@ input[type="checkbox"] {
     color: #2b2b2b;
     text-transform: uppercase;
 }
+
+/* ── Accordion Styles ────────────────────────────────────── */
+.terms-accordion {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 0;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.terms-accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    background: #f4f4f4;
+    font-weight: 700;
+    font-size: 14px;
+    color: #2b2b2b;
+    text-transform: uppercase;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    border-left: 4px solid #2b2b2b;
+}
+
+.terms-accordion-header::-webkit-details-marker {
+    display: none;
+}
+
+.terms-accordion-header:hover {
+    background: #eaeaea;
+}
+
+.accordion-hint {
+    font-size: 12px;
+    color: #e74c3c;
+    text-transform: none;
+    font-weight: 600;
+}
+
+.accordion-body {
+    padding: 20px 25px;
+    border-top: 1px solid #ddd;
+    max-height: 350px;
+    overflow-y: auto;
+}
+/* ────────────────────────────────────────────────────────── */
 
 .signature-section {
     background: white;
@@ -423,6 +504,28 @@ input[type="checkbox"] {
 .clear-signature:hover {
     background: #1a1a1a;
 }
+
+/* ── Read-Only Date & Disclaimer Styles ─────────────────── */
+.signature-disclaimer {
+    font-size: 12px;
+    color: #6e6e73;
+    font-style: italic;
+    margin-top: 15px;
+    padding: 10px 14px;
+    background: #f8f8f8;
+    border-left: 3px solid #ccc;
+}
+
+.read-only-date {
+    padding: 14px 16px;
+    border: 2px solid #e0e0e0;
+    background: #eee;
+    color: #555;
+    font-size: 15px;
+    font-weight: 600;
+    user-select: none;
+}
+/* ────────────────────────────────────────────────────────── */
 
 .signature-date-row {
     display: grid;
@@ -568,7 +671,7 @@ input[type="checkbox"] {
     transform: translateY(-1px);
 }
 
-/* ── $99 Fee Callout ─────────────────────────────────────── */
+/* ── Fee Callouts ($99 vs $400 Battery) ──────────────────── */
 
 .fee-callout {
     background: white;
@@ -577,6 +680,12 @@ input[type="checkbox"] {
     border-radius: 0;
     padding: 20px 24px;
     margin-bottom: 20px;
+}
+
+.battery-fee-callout {
+    border: 2px solid #d32f2f;
+    border-left: 6px solid #d32f2f;
+    background: #fffafa;
 }
 
 .fee-callout-header {
@@ -605,6 +714,12 @@ input[type="checkbox"] {
     line-height: 1.5;
 }
 
+.battery-checkbox-stack {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ffd8d8;
+}
+
 .fee-checkbox-label {
     display: flex;
     align-items: center;
@@ -615,6 +730,20 @@ input[type="checkbox"] {
     cursor: pointer;
     text-transform: none;
     letter-spacing: normal;
+}
+
+.tcpa-checkbox {
+    background: #f4f8ff;
+    border: 1px solid #cce0ff;
+    padding: 12px 14px;
+    border-radius: 4px;
+}
+
+.forfeiture-checkbox {
+    background: #fff0f0;
+    border: 1px solid #ffbcbc;
+    padding: 12px;
+    color: #a80000;
 }
 
 .fee-checkbox-label input[type="checkbox"] {
