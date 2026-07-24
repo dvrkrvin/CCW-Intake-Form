@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Moto Service Intake - Charged Cycle Works</title>
+    <title>Service Intake - Charged Cycle Works</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -18,7 +18,6 @@
     </div>
 
     <div id="app">
-
         <!-- Success Modal -->
         <div v-if="showSuccessModal" class="modal-overlay">
             <div class="modal">
@@ -35,14 +34,33 @@
         </div>
 
         <div class="container">
+            <!-- Form Type Toggle Slider -->
+            <div class="toggle-container">
+                <div class="toggle-slider">
+                    <button 
+                        type="button" 
+                        :class="['toggle-btn', { active: formType === 'standard' }]"
+                        @click="switchFormType('standard')"
+                    >
+                        Bike Service
+                    </button>
+                    <button 
+                        type="button" 
+                        :class="['toggle-btn', { active: formType === 'battery' }]"
+                        @click="switchFormType('battery')"
+                    >
+                        Battery Only Service
+                    </button>
+                    <div class="toggle-indicator" :class="formType"></div>
+                </div>
+            </div>
+
             <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
             <form @submit.prevent="submitForm" novalidate>
-
                 <!-- Customer Information -->
                 <h2>Customer Information</h2>
                 <div class="form-section">
-
                     <div class="form-row">
                         <div class="form-group">
                             <label>First Name <span class="required">*</span></label>
@@ -161,18 +179,26 @@
                         </div>
                     </div>
 
+                    <!-- TCPA / SMS Consent Checkbox (Applies to BOTH forms) -->
+                    <div class="form-row" style="margin-top: 10px;">
+                        <div class="form-group full-width">
+                            <label class="fee-checkbox-label tcpa-checkbox">
+                                <input type="checkbox" v-model="formData.smsConsent">
+                                <span>I consent to receive service updates, diagnostic reports, and repair authorization requests via text/SMS at the phone number provided above. <span class="required">*</span></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Service Request -->
-                <h2>Service Request</h2>
+                <h2>{{ formType === 'standard' ? 'Service Request' : 'Battery Diagnostic Request' }}</h2>
                 <div class="form-section">
-
                     <div class="form-row">
                         <div class="form-group full-width">
-                            <label>Requested Service<span class="required">*</span></label>
+                            <label>Requested Service / Problem Description<span class="required">*</span></label>
                             <textarea
                                 v-model="formData.requestedService"
-                                placeholder="Please be descriptive. Vague requests may result in higher service costs and delays."
+                                :placeholder="formType === 'standard' ? 'Please be descriptive. Vague requests may result in higher service costs and delays.' : 'Please describe battery symptoms, fault codes, cell imbalance, or known damage history in detail.'"
                             ></textarea>
                         </div>
                     </div>
@@ -188,15 +214,14 @@
                             </label>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- Disclosures and Authorization -->
                 <h2>Disclosures and Authorization</h2>
                 <div class="terms-section">
 
-                    <!-- $99 Minumum Fee Acknowledgment -->
-                    <div class="disclosure-box fee-callout">
+                    <!-- STANDARD: $99 Minimum Fee Acknowledgment -->
+                    <div v-if="formType === 'standard'" class="disclosure-box fee-callout">
                         <div class="fee-callout-header">
                             <span class="fee-amount">$99 </span>
                             <span class="fee-label">Service Minimum</span>
@@ -206,10 +231,37 @@
                             <strong>even if repairs are declined or diagnostics are inconclusive</strong>. For bikes
                             requiring diagnosis, this authorizes the first hour of diagnostic work.
                         </p>
-                            <label class="fee-checkbox-label">
-                                <input type="checkbox" v-model="formData.disclosures.diagFeeAcknowledged">
-                                <span>I understand and agree to the $99 service minimum <span style="color: #e74c3c;">*</span></span>
+                        <label class="fee-checkbox-label">
+                            <input type="checkbox" v-model="formData.disclosures.diagFeeAcknowledged">
+                            <span>I understand and agree to the $99 service minimum <span style="color: #e74c3c;">*</span></span>
+                        </label>
+                    </div>
+
+                    <!-- BATTERY: $400 Upfront / Last-Ditch Effort / Forfeiture Callout -->
+                    <div v-else class="disclosure-box fee-callout battery-fee-callout">
+                        <div class="fee-callout-header">
+                            <span class="fee-amount" style="color: #d32f2f;">$400 </span>
+                            <span class="fee-label" style="color: #d32f2f;">Upfront Repair Attempt & Diagnostic Fee</span>
+                        </div>
+                        <p class="fee-description">
+                            A <strong style="color: #d32f2f;">$400 upfront payment (pre-tax)</strong> is required at drop-off before any diagnostic or repair work begins. You explicitly acknowledge that attempting to repair a failed lithium battery is a <strong style="color: #d32f2f;">last-ditch effort and is NOT guaranteed in any capacity</strong>.
+                        </p>
+                        <p class="fee-description">
+                            <strong>Financial Outcomes & Credit Options:</strong><br>
+                            • <strong>If Unrecoverable:</strong> You are eligible to collect a <strong style="color: #d32f2f;">$200 refund upon physical pickup</strong> of your unrepaired battery.<br>
+                            • <strong>If Buying New:</strong> If the battery cannot be repaired and you elect to purchase a new replacement battery from Charged Cycle Works, we will apply the <strong style="color: #d32f2f;">entire $400 payment as a credit</strong> toward your new battery.<br>
+                            • <strong>If Abandoned:</strong> If you do not pick up the battery, you <strong style="color: #d32f2f;">forfeit the full $400 payment</strong>.
+                        </p>
+                        <div class="battery-checkbox-stack">
+                            <label class="fee-checkbox-label" style="margin-bottom: 12px; align-items: flex-start;">
+                                <input type="checkbox" v-model="formData.disclosures.batteryFeeAcknowledged" style="margin-top: 3px;">
+                                <span>I agree to pay the <strong style="color: #d32f2f;">$400 upfront fee</strong> and understand that repair is a <strong style="color: #d32f2f;">last-ditch effort with zero guarantee of success</strong>. I understand I am entitled to a $200 refund ONLY upon picking up an unrecoverable battery, or a $400 credit toward a new battery purchase. <span style="color: #e74c3c;">*</span></span>
                             </label>
+                            <label class="fee-checkbox-label forfeiture-checkbox" style="align-items: flex-start;">
+                                <input type="checkbox" v-model="formData.disclosures.batteryPickupTerms" style="margin-top: 3px;">
+                                <span><strong>ABANDONMENT & TOTAL FORFEITURE NOTICE:</strong> I explicitly agree that I must pick up my battery within <strong style="color: #d32f2f;">10 business days</strong> after notification of service completion. If I fail to pick up the battery within 10 business days, I completely <strong style="color: #d32f2f;">forfeit all rights of ownership to the battery AND forfeit the entire $400 payment</strong> spent to attempt repair. Charged Cycle Works reserves the full right to dispose of, recycle, or salvage abandoned batteries without further notice or reimbursement. <span style="color: #e74c3c;">*</span></span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Section A -->
@@ -232,76 +284,91 @@
                         <p style="margin-top: 15px; font-size: 13px; color: #6e6e73;">
                             Customer confirms all known history has been disclosed. Shop may refuse service or isolate/remove the battery for safety.
                         </p>
-                        <div class="initials-box">
-                            <label>Initials <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.initialsA"
-                                @input="onInitialsInput('initialsA')"
-                                maxlength="3"
-                            >
-                        </div>
+                        <!-- Section A Checkbox Confirmation (Standard Mode Only) -->
+                        <label v-if="formType === 'standard'" class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
+                            <input type="checkbox" v-model="formData.disclosures.sectionAAck">
+                            <span>I confirm all known safety and battery history has been fully disclosed above. <span style="color: #e74c3c;">*</span></span>
+                        </label>
                     </div>
 
                     <!-- Section B -->
                     <div class="disclosure-box">
-                        <h4>B. AUTHORIZATION, TESTING, AND PAYMENT</h4>
-                        <p class="terms-text">Service minimum: $99, non-refundable, applies to every visit regardless of outcome — including visits where diagnostics are inconclusive or no repair is performed. For bikes requiring diagnosis, this authorizes the first hour of diagnostic work. Labor: $159/hr unless a written flat-rate quote is provided for a specific scope.</p>
-                        <p class="terms-text">If additional time is required beyond a flat-rate quote due to hidden damage or complications, we will attempt to contact you for approval before proceeding. Additional time is billed at $159/hr if approved.</p>
-                        <p class="terms-text">No work beyond the authorized estimate or quote without written approval (signature, email, or text/SMS from the number on file).</p>
-                        <p class="terms-text">Testing authorized (bench and short test ride when safe). Payment due before release. Storage after 7 days: $20/day.</p>
-                        <p class="terms-text">Shop is not responsible for personal items or loose accessories left with the bike. See Terms and Conditions below.</p>
-                        <div class="initials-box">
-                            <label>Initials <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.initialsB"
-                                @input="onInitialsInput('initialsB')"
-                                maxlength="3"
-                            >
-                        </div>
+                        <h4>B. OPERATIONAL AUTHORIZATION & TESTING</h4>
+                        
+                        <!-- Standard Service Wording (Streamlined) -->
+                        <template v-if="formType === 'standard'">
+                            <p class="terms-text">Customer authorizes the $99 service minimum (authorizing the first hour of diagnostic work) and standard bench/road testing when safe. Labor beyond flat-rate quotes or the initial diagnostic hour is billed at our standard rate of $159/hr.</p>
+                            <p class="terms-text">No work beyond authorized estimates or quotes will proceed without documented approval (signature, email, or text/SMS from the number on file). Storage after 7 days: $20/day.</p>
+                            <p class="terms-text">Shop is not responsible for personal items or loose accessories left with the bike. All terms and minimum fees acknowledged above apply in full.</p>
+                            
+                            <!-- Section B Checkbox Confirmation -->
+                            <label class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
+                                <input type="checkbox" v-model="formData.disclosures.sectionBAck">
+                                <span>I authorize operational testing and agree to the $99 minimum and $159/hr labor rate. <span style="color: #e74c3c;">*</span></span>
+                            </label>
+                        </template>
+
+                        <!-- Battery Diagnostics Wording (Streamlined & Professionally Focused) -->
+                        <template v-else>
+                            <p class="terms-text">Customer authorizes Charged Cycle Works to perform bench testing, charge/discharge cycling, and high-current load testing as required for diagnosis.</p>
+                            <p class="terms-text">No labor or parts beyond the pre-authorized limits established above will be added without documented approval (email or text/SMS from the number on file). Additional approved labor is billed at the standard rate of $159/hr.</p>
+                            <p class="terms-text">Shop is not responsible for straps, bags, or loose accessories left with the equipment. All financial credits, refunds, and 10-day forfeiture terms acknowledged above apply in full.</p>
+                        </template>
                     </div>
 
                     <!-- Section C -->
                     <div class="disclosure-box">
                         <h4>C. QUALITY CONTROL AND OPERATIONAL ACCESS</h4>
-                        <p class="terms-text">Customer agrees to leave all keys, batteries, information, and critical operating components (e.g. fobs or chargers) required to operate the bike.</p>
-                        <p class="terms-text">If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.</p>
-                        <p class="terms-text">Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.</p>
-                        <div class="initials-box">
-                            <label>Initials <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.initialsC"
-                                @input="onInitialsInput('initialsC')"
-                                maxlength="3"
-                            >
-                        </div>
+                        
+                        <!-- Standard Service Wording -->
+                        <template v-if="formType === 'standard'">
+                            <p class="terms-text">Customer agrees to leave all keys, batteries, information, and critical operating components (e.g. fobs or chargers) required to operate the bike.</p>
+                            <p class="terms-text">If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.</p>
+                            <p class="terms-text">Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.</p>
+                            
+                            <!-- Section C Checkbox Confirmation -->
+                            <label class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
+                                <input type="checkbox" v-model="formData.disclosures.sectionCAck">
+                                <span>I agree to leave keys/batteries required for testing or waive liability for issues missed without a test ride. <span style="color: #e74c3c;">*</span></span>
+                            </label>
+                        </template>
+
+                        <!-- Battery Diagnostics Wording (Battery Specific) -->
+                        <template v-else>
+                            <p class="terms-text">Customer agrees to leave any specialized adapters, proprietary chargers, or keys required to power on, charge, and test the battery system.</p>
+                            <p class="terms-text">If the customer fails to leave the necessary equipment to charge or load-test the battery, Charged Cycle Works is not liable for any performance issues or faults that could only have been identified through full functional load testing.</p>
+                            <p class="terms-text">Any subsequent return visits to address issues that could not be verified due to missing charging/testing accessories will be treated as a new diagnostic request.</p>
+                        </template>
                     </div>
 
-                    <!-- Terms and Conditions -->
-                    <h3>TERMS AND CONDITIONS</h3>
-                    <div class="terms-text">
-                        <h4>1. Estimates and authorization</h4>
-                        <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the total must be approved in writing (signature, email, or text/SMS from the number on file). Authorization records are kept with the repair order.</p>
-                        <h4>2. Service minimum and disassembly</h4>
-                        <p>The $99 service minimum applies to every visit regardless of outcome, including visits where diagnostics are inconclusive or no repair is performed. For bikes requiring diagnosis, this authorizes the first hour of diagnostic work. Some faults require disassembly to confirm. Parts removed for inspection may not be reinstalled until authorized.</p>
-                        <h4>3. High-voltage and lithium battery safety</h4>
-                        <p>Lithium systems can fail without warning. If the shop determines a battery, wiring, or high-voltage component is unsafe, service may be refused and the bike may be released unrepaired. Customer authorizes the shop to isolate power, remove the battery when necessary, and store it in a safe area. Bikes must be dropped off with a state of charge between 20% and 80%. The shop is not responsible for battery degradation, cell imbalance, or discharge-related failure for bikes dropped off outside of this healthy range. If a bike is received below 40%, the customer must provide a functional charger; otherwise, the shop is not liable for battery health or any issues resulting from the battery sitting in a discharged state. Hidden damage from water, impact, corrosion, or previous overheating may not be discoverable until disassembly.</p>
-                        <h4>4. Aftermarket and customer-supplied parts</h4>
-                        <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility and safety issues. The shop is not responsible for failures caused by non-OEM parts, tuning, firmware changes, or wiring modifications. Additional diagnostics may be required to identify modification-related faults.</p>
-                        <h4>5. Testing and intermittent conditions</h4>
-                        <p>Customer authorizes bench testing and limited test ride when safe and necessary to verify repairs. Intermittent symptoms may not reproduce. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under test conditions.</p>
-                        <h4>6. Warranty</h4>
-                        <p>Unless otherwise stated on the invoice, workmanship is warranted for 30 days from completion for the specific repair performed. Warranty does not cover abuse, competition use, water intrusion, impact damage, altered firmware or tuning after service, customer modifications, or unrelated failures. Manufacturer parts warranty is handled per manufacturer policy when applicable.</p>
-                        <h4>7. Storage, fees, and release</h4>
-                        <p>Bikes are released only after payment in full. The first 7 calendar days after completion notice are free, then storage is $20 per day. If a bike is not picked up, the shop may pursue remedies allowed by applicable state law, including lien processes.</p>
-                        <h4>8. Property, photos, and data</h4>
-                        <p>Remove personal items and removable accessories before service. The shop is not responsible for loss or damage to personal property or unsecured accessories left on the bike. The shop may take photos for documentation and quality control. Promotional use requires separate consent. Customer authorizes access to diagnostic data (logs, firmware versions, app-based diagnostics) as needed for service.</p>
-                        <h4>9. Right to refuse service and limitation of liability</h4>
-                        <p>The shop may refuse service for safety concerns, undisclosed hazards, abusive behavior, or if the repair is not economically or technically feasible. To the extent allowed by law, the shop is not responsible for incidental or consequential damages, including loss of use. Service work may reveal additional issues during disassembly and testing, especially on modified or water-exposed bikes.</p>
-                        <p style="margin-top: 20px; font-style: italic; font-size: 12px;">Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.</p>
-                    </div>
+                    <!-- Interactive Accordion for Terms and Conditions (Applies to BOTH forms) -->
+                    <details class="terms-accordion">
+                        <summary class="terms-accordion-header">
+                            <span class="accordion-title">View Full Terms and Conditions (9 Articles)</span>
+                            <span class="accordion-hint">Click to expand &#9660;</span>
+                        </summary>
+                        <div class="terms-text accordion-body">
+                            <h4>1. Estimates and authorization</h4>
+                            <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the total must be approved in writing (signature, email, or text/SMS from the number on file). Authorization records are kept with the repair order.</p>
+                            <h4>2. Service minimum and disassembly</h4>
+                            <p>The standard $99 service minimum applies to general visits. For standalone battery repair drop-offs, a $400 upfront payment applies ($200 refundable upon physical pickup if unrecoverable, or $400 credited toward a new battery purchase). Customer explicitly acknowledges that battery repair is a last-ditch effort with zero guarantee of success. Some faults require disassembly to confirm. Parts or cells removed for inspection may not be reinstalled until authorized.</p>
+                            <h4>3. High-voltage and lithium battery safety & Total Abandonment Forfeiture</h4>
+                            <p>Lithium systems can fail without warning. If the shop determines a battery, wiring, or high-voltage component is unsafe, service may be refused and the equipment may be released unrepaired. Customer authorizes the shop to isolate power, remove the battery when necessary, and store it in a safe area. Hidden damage from water, impact, corrosion, or previous overheating may not be discoverable until disassembly. <strong>For standalone battery drop-offs, any battery not picked up within 10 business days of notice of completion is deemed legally abandoned and forfeited; the customer explicitly agrees to forfeit all ownership rights to the battery AND forfeit the entire $400 upfront payment. Charged Cycle Works reserves the full right to recycle, salvage, or dispose of forfeited batteries without customer recourse or reimbursement.</strong></p>
+                            <h4>4. Aftermarket and customer-supplied parts</h4>
+                            <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility and safety issues. The shop is not responsible for failures caused by non-OEM parts, tuning, firmware changes, or wiring modifications. Additional diagnostics may be required to identify modification-related faults.</p>
+                            <h4>5. Testing and intermittent conditions</h4>
+                            <p>Customer authorizes bench testing, load testing, and limited test riding when safe and necessary to verify repairs. Intermittent symptoms may not reproduce. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under test conditions.</p>
+                            <h4>6. Warranty</h4>
+                            <p>Unless otherwise stated on the invoice, workmanship is warranted for 30 days from completion for the specific repair performed. Warranty does not cover abuse, competition use, water intrusion, impact damage, altered firmware or tuning after service, customer modifications, or unrelated failures. Manufacturer parts warranty is handled per manufacturer policy when applicable.</p>
+                            <h4>7. Storage, fees, and release</h4>
+                            <p>Equipment is released only after payment in full. For general bikes, the first 7 calendar days after completion notice are free, then storage is $20 per day. For standalone battery intakes, failure to pick up within 10 business days results in immediate and total forfeiture of both the physical battery and the entire $400 repair attempt payment. If equipment is not picked up, the shop may pursue remedies allowed by applicable state law, including lien processes or recycling disposal.</p>
+                            <h4>8. Property, photos, and data</h4>
+                            <p>Remove personal items and removable accessories before service. The shop is not responsible for loss or damage to personal property or unsecured accessories. The shop may take photos for documentation and quality control. Promotional use requires separate consent. Customer authorizes access to diagnostic data (logs, firmware versions, app-based diagnostics) as needed for service.</p>
+                            <h4>9. Right to refuse service and limitation of liability</h4>
+                            <p>The shop may refuse service for safety concerns, undisclosed hazards, abusive behavior, or if the repair is not economically or technically feasible. To the extent allowed by law, the shop is not responsible for incidental or consequential damages, including loss of use. Service work may reveal additional issues during disassembly and testing, especially on modified or water-exposed equipment.</p>
+                            <p style="margin-top: 20px; font-style: italic; font-size: 12px;">Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.</p>
+                        </div>
+                    </details>
 
                 </div>
 
@@ -309,7 +376,7 @@
                 <div class="signature-section">
                     <h3>SIGNATURE</h3>
                     <p class="terms-text">
-                        By signing below, customer confirms they are the owner or authorized agent. Customer has read and agrees to all of the above, including the Disclosures and Authorization section and the Terms and Conditions, and authorizes Charged Cycle Works to perform diagnostic and repair services as approved.
+                        By signing below, customer confirms they are the owner or authorized agent. Customer has read and agrees to all of the above, including the Disclosures and Authorization section, the Pricing & Total Forfeiture terms, and the Terms and Conditions, and authorizes Charged Cycle Works to perform diagnostic and repair services as approved.
                     </p>
 
                     <div class="signature-canvas-container">
@@ -317,6 +384,11 @@
                         <canvas ref="signatureCanvas" class="signature-canvas"></canvas>
                     </div>
                     <button type="button" @click="clearSignature" class="clear-signature">Clear Signature</button>
+
+                    <!-- Automated Read-Only Date & Legal Disclaimer -->
+                    <div class="signature-disclaimer">
+                        &#128274; IP Address and exact digital timestamp are automatically recorded upon form submission.
+                    </div>
 
                     <div class="signature-date-row">
                         <div class="form-group">
@@ -327,19 +399,14 @@
                             >
                         </div>
                         <div class="form-group">
-                            <label>Date <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.signatureDate"
-                                placeholder="MM/DD/YYYY"
-                                maxlength="10"
-                            >
+                            <label>Date</label>
+                            <div class="read-only-date">{{ formData.signatureDate }}</div>
                         </div>
                     </div>
                 </div>
 
                 <button type="submit" class="submit-btn" :disabled="isSubmitting">
-                    <span v-if="!isSubmitting">Submit Service Intake Form</span>
+                    <span v-if="!isSubmitting">Submit {{ formType === 'standard' ? 'Service Intake' : 'Battery Diagnostic' }} Form</span>
                     <span v-else><span class="loading"></span> Submitting...</span>
                 </button>
 
