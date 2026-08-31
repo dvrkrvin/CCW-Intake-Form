@@ -14,7 +14,6 @@ body {
 .header {
     background: white;
     padding: 40px 20px 30px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: center;
 }
 
@@ -45,11 +44,10 @@ body {
     --accent-soft: #fff5f5;
     --accent-ink: white;
     max-width: 900px;
-    margin: 40px auto;
+    margin: 0 auto 40px;
     background: white;
     padding: 50px;
     border-radius: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .container.express-layout {
