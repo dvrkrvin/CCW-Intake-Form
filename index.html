@@ -33,10 +33,17 @@
             </div>
         </div>
 
-        <div class="container">
+        <div class="container" :class="{ 'express-layout': formType === 'express', 'battery-layout': formType === 'battery' }">
             <!-- Form Type Toggle Slider -->
             <div class="toggle-container">
                 <div class="toggle-slider">
+                    <button
+                        type="button"
+                        :class="['toggle-btn', { active: formType === 'express' }]"
+                        @click="switchFormType('express')"
+                    >
+                        Express Visit
+                    </button>
                     <button 
                         type="button" 
                         :class="['toggle-btn', { active: formType === 'standard' }]"
@@ -56,6 +63,11 @@
             </div>
 
             <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+
+            <div v-if="formType === 'express' && isAfterExpressCutoff" class="express-cutoff-warning" role="alert">
+                <strong>After 5:00 PM Mountain Time:</strong>
+                An Express Visit may not be possible. Please confirm availability with the receptionist.
+            </div>
 
             <form @submit.prevent="submitForm" novalidate>
                 <!-- Customer Information -->
@@ -105,79 +117,81 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label>Address Line 1 <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.address1"
-                                placeholder="Street address"
-                                autocomplete="address-line1"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label>Address Line 2</label>
-                            <input
-                                type="text"
-                                v-model="formData.address2"
-                                placeholder="Apt, suite, unit, etc. (optional)"
-                                autocomplete="address-line2"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-row city-state-zip-row">
-                        <div class="form-group city-field">
-                            <label>City <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.city"
-                                autocomplete="address-level2"
-                            >
-                        </div>
-
-                        <div
-                            class="form-group state-field"
-                            ref="stateField"
-                            @focusin="showStateSuggestions = true"
-                        >
-                            <label>State <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.state"
-                                maxlength="2"
-                                @input="onStateInput"
-                                @blur="onStateBlur"
-                                autocomplete="off"
-                            />
-                            <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
-                                <div
-                                    v-for="s in filteredStates"
-                                    :key="s.abbr"
-                                    class="state-option"
-                                    @pointerdown.prevent="selectState(s)"
+                    <template v-if="formType !== 'express'">
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>Address Line 1 <span class="required">*</span></label>
+                                <input
+                                    type="text"
+                                    v-model="formData.address1"
+                                    placeholder="Street address"
+                                    autocomplete="address-line1"
                                 >
-                                    <span class="state-abbr">{{ s.abbr }}</span>
-                                    <span class="state-name">{{ s.name }}</span>
-                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>ZIP Code <span class="required">*</span></label>
-                            <input
-                                type="text"
-                                v-model="formData.zip"
-                                @input="onZipInput"
-                                maxlength="10"
-                                inputmode="numeric"
-                                autocomplete="postal-code"
-                            >
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>Address Line 2</label>
+                                <input
+                                    type="text"
+                                    v-model="formData.address2"
+                                    placeholder="Apt, suite, unit, etc. (optional)"
+                                    autocomplete="address-line2"
+                                >
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="form-row city-state-zip-row">
+                            <div class="form-group city-field">
+                                <label>City <span class="required">*</span></label>
+                                <input
+                                    type="text"
+                                    v-model="formData.city"
+                                    autocomplete="address-level2"
+                                >
+                            </div>
+
+                            <div
+                                class="form-group state-field"
+                                ref="stateField"
+                                @focusin="showStateSuggestions = true"
+                            >
+                                <label>State <span class="required">*</span></label>
+                                <input
+                                    type="text"
+                                    v-model="formData.state"
+                                    maxlength="2"
+                                    @input="onStateInput"
+                                    @blur="onStateBlur"
+                                    autocomplete="off"
+                                />
+                                <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
+                                    <div
+                                        v-for="s in filteredStates"
+                                        :key="s.abbr"
+                                        class="state-option"
+                                        @pointerdown.prevent="selectState(s)"
+                                    >
+                                        <span class="state-abbr">{{ s.abbr }}</span>
+                                        <span class="state-name">{{ s.name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>ZIP Code <span class="required">*</span></label>
+                                <input
+                                    type="text"
+                                    v-model="formData.zip"
+                                    @input="onZipInput"
+                                    maxlength="10"
+                                    inputmode="numeric"
+                                    autocomplete="postal-code"
+                                >
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- TCPA / SMS Consent Checkbox (Applies to BOTH forms) -->
                     <div class="form-row" style="margin-top: 10px;">
@@ -191,34 +205,321 @@
                 </div>
 
                 <!-- Service Request -->
-                <h2>{{ formType === 'standard' ? 'Service Request' : 'Battery Diagnostic Request' }}</h2>
+                <h2>{{ formType === 'standard' ? 'Bikes & Services Requested' : formType === 'express' ? 'Express Services' : 'Battery Diagnostic Request' }}</h2>
                 <div class="form-section">
-                    <div class="form-row">
+                    <template v-if="formType === 'standard'">
+                        <p class="bike-section-intro">Add each bike included in this service visit.</p>
+
+                        <div
+                            v-for="(bike, index) in formData.bikes"
+                            :key="bike.id"
+                            class="bike-card"
+                        >
+                            <div class="bike-card-header">
+                                <h3>{{ index === 0 ? 'Bike Details' : `Bike ${index + 1} Details` }}</h3>
+                                <button
+                                    v-if="formData.bikes.length > 1"
+                                    type="button"
+                                    class="remove-bike-btn"
+                                    :aria-label="`Remove Bike ${index + 1}`"
+                                    @click="removeBike(index)"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+
+                            <div class="form-row bike-make-model-row">
+                                <div class="form-group">
+                                    <label :for="`bike-${bike.id}-make`">Make <span class="required">*</span></label>
+                                    <input
+                                        :id="`bike-${bike.id}-make`"
+                                        type="text"
+                                        v-model="bike.make"
+                                        placeholder="e.g., E Ride Pro"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label :for="`bike-${bike.id}-model`">Model <span class="required">*</span></label>
+                                    <input
+                                        :id="`bike-${bike.id}-model`"
+                                        type="text"
+                                        v-model="bike.model"
+                                        placeholder="e.g., SS 4.0"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="form-row bike-services-row">
+                                <div class="form-group full-width">
+                                    <label :for="`bike-${bike.id}-services`">Services Requested <span class="required">*</span></label>
+                                    <textarea
+                                        :id="`bike-${bike.id}-services`"
+                                        v-model="bike.requestedService"
+                                        placeholder="Describe the service needed or problem with this bike."
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-row warranty-row bike-warranty-row">
+                                <div class="form-group full-width">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" v-model="bike.warrantyRequest" @change="onBikeWarrantyChange(bike)">
+                                        <span>
+                                            Request a warranty eligibility review for this bike<br>
+                                            <span class="checkbox-hint">This does not confirm coverage. Normal service and diagnostic charges apply unless coverage is approved.</span>
+                                        </span>
+                                    </label>
+
+                                    <div v-if="bike.warrantyRequest" class="warranty-followup">
+                                        <fieldset>
+                                            <legend>Was this bike purchased from Charged Cycle Works? <span class="required">*</span></legend>
+                                            <div class="choice-row">
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="ccw"> Yes</label>
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="other"> No</label>
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="unsure"> Unsure</label>
+                                            </div>
+                                        </fieldset>
+                                        <div class="form-group warranty-date-field">
+                                            <label :for="`bike-${bike.id}-purchase-date`">Approximate Purchase Month <span class="optional-label">Optional</span></label>
+                                            <input :id="`bike-${bike.id}-purchase-date`" type="month" v-model="bike.warrantyPurchaseDate">
+                                        </div>
+                                        <p class="verification-note">Reception must verify eligibility before any warranty coverage or waived charges are approved.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bike-safety-card">
+                                <fieldset>
+                                    <legend>Has this bike experienced water submersion, overheating/fire, or a significant battery or wiring impact? <span class="required">*</span></legend>
+                                    <div class="safety-answer-row">
+                                        <label>
+                                            <input type="radio" v-model="bike.safetyHistory" value="none" @change="onBikeSafetyHistoryChange(bike)">
+                                            No — none of these have occurred
+                                        </label>
+                                        <label>
+                                            <input type="radio" v-model="bike.safetyHistory" value="reported" @change="onBikeSafetyHistoryChange(bike)">
+                                            Yes — show the applicable conditions
+                                        </label>
+                                    </div>
+                                </fieldset>
+
+                                <div v-if="bike.safetyHistory === 'reported'" class="safety-detail-panel">
+                                    <p class="safety-instruction">Select only conditions that have actually occurred. These are not acknowledgment boxes.</p>
+                                    <div class="safety-condition-list">
+                                        <label><input type="checkbox" v-model="bike.safetySubmerged" @change="bike.safetyMultipleConfirmed = false"> Submerged or heavy water exposure</label>
+                                        <label><input type="checkbox" v-model="bike.safetyThermal" @change="bike.safetyMultipleConfirmed = false"> Smoke, sparks, overheating, burning smell, swelling, or fire/thermal event</label>
+                                        <label><input type="checkbox" v-model="bike.safetyImpact" @change="bike.safetyMultipleConfirmed = false"> Impact to battery, charge port, or wiring harness</label>
+                                    </div>
+                                    <label v-if="bikeSafetySelectionCount(bike) >= 2" class="safety-multiple-confirmation">
+                                        <input type="checkbox" v-model="bike.safetyMultipleConfirmed">
+                                        <span>I selected multiple serious safety events and confirm that each selection is accurate. <span class="required">*</span></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-row rush-row">
+                                <div class="form-group full-width">
+                                    <label class="rush-checkbox-label">
+                                        <input type="checkbox" v-model="bike.rushLaborRequested">
+                                        <span>
+                                            Request rush labor at $238.50/hour (1.5× the regular rate) to move this bike to the front of the queue. Completion time is not guaranteed.
+                                        </span>
+                                    </label>
+
+                                    <div v-if="bike.rushLaborRequested" class="rush-return-date">
+                                        <label :for="`bike-${bike.id}-return-date`">Requested Return Date <span class="optional-label">Optional</span></label>
+                                        <input
+                                            :id="`bike-${bike.id}-return-date`"
+                                            type="date"
+                                            v-model="bike.requestedReturnDate"
+                                            :min="getTodayIsoDate()"
+                                        >
+                                        <p>This date communicates your preference only and is not a completion guarantee.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="add-bike-btn"
+                            :disabled="formData.bikes.length >= maxBikes"
+                            @click="addBike"
+                        >
+                            <span aria-hidden="true">{{ formData.bikes.length >= maxBikes ? '✓' : '+' }}</span>
+                            {{ formData.bikes.length >= maxBikes ? `Maximum of ${maxBikes} Bikes Reached` : 'Add Another Bike' }}
+                        </button>
+                        <p class="bike-limit-note">Up to {{ maxBikes }} bikes may be included in one submission.</p>
+                    </template>
+
+                    <template v-else-if="formType === 'express'">
+                        <div class="express-program-summary">
+                            <strong>Walk-in Express Service</strong>
+                            <p>Choose up to 30 minutes of predictable maintenance for one bike. Express visits are first-come, first-served and require same-day pickup.</p>
+                            <p>Bike must be reasonably clean and arrive with at least 30% battery charge for a test ride.</p>
+                        </div>
+
+                        <div class="bike-card express-bike-card">
+                            <div class="bike-card-header">
+                                <h3>Bike Details</h3>
+                                <span class="single-bike-badge">One bike only</span>
+                            </div>
+                            <div class="form-row bike-make-model-row">
+                                <div class="form-group">
+                                    <label for="express-bike-make">Make <span class="required">*</span></label>
+                                    <input id="express-bike-make" type="text" v-model="formData.bikes[0].make" placeholder="e.g., E Ride Pro" autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="express-bike-model">Model <span class="required">*</span></label>
+                                    <input id="express-bike-model" type="text" v-model="formData.bikes[0].model" placeholder="e.g., SS 4.0" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="express-progress-card" :class="{ full: expressHasNoFittingServices }">
+                            <div class="express-progress-header">
+                                <div>
+                                    <span class="progress-eyebrow">Express labor selected</span>
+                                    <strong>{{ expressSelectedMinutes }} of {{ expressMinuteLimit }} minutes</strong>
+                                </div>
+                                <span class="progress-remaining">{{ expressRemainingMinutes }} min remaining</span>
+                            </div>
+                            <div
+                                class="express-progress-track"
+                                role="progressbar"
+                                aria-label="Express service labor time selected"
+                                :aria-valuenow="expressSelectedMinutes"
+                                aria-valuemin="0"
+                                :aria-valuemax="expressMinuteLimit"
+                            >
+                                <div class="express-progress-fill" :style="{ width: `${expressProgressPercent}%` }"></div>
+                            </div>
+                            <p v-if="expressHasNoFittingServices" class="express-cap-message">
+                                This visit has reached its express-service capacity. Options that would exceed 30 minutes are unavailable.
+                            </p>
+                        </div>
+
+                        <div class="express-service-menu">
+                            <section v-for="category in expressServiceCategories" :key="category" class="express-service-category">
+                                <h3>{{ category }}</h3>
+                                <label
+                                    v-for="service in servicesForCategory(category)"
+                                    :key="service.id"
+                                    :class="['express-service-option', {
+                                        selected: isExpressServiceSelected(service),
+                                        disabled: isExpressServiceDisabled(service)
+                                    }]"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        v-model="formData.expressSelectedServiceIds"
+                                        :value="service.id"
+                                        :disabled="isExpressServiceDisabled(service)"
+                                    >
+                                    <span class="express-service-copy">
+                                        <span class="express-service-name">{{ service.name }}</span>
+                                        <span class="express-service-time">~{{ service.minutes }} min</span>
+                                    </span>
+                                </label>
+                            </section>
+                        </div>
+
+                        <div v-if="expressHasNoFittingServices" class="express-convert-card">
+                            <div>
+                                <strong>Need additional service?</strong>
+                                <p>Move to the full Bike Service form. Your contact information, bike details, and selected services will be carried over.</p>
+                            </div>
+                            <button type="button" class="convert-to-standard-btn" @click="switchExpressToStandard">
+                                Continue with Bike Service
+                            </button>
+                        </div>
+                    </template>
+
+                    <div v-else class="form-row">
                         <div class="form-group full-width">
                             <label>Requested Service / Problem Description<span class="required">*</span></label>
                             <textarea
                                 v-model="formData.requestedService"
-                                :placeholder="formType === 'standard' ? 'Please be descriptive. Vague requests may result in higher service costs and delays.' : 'Please describe battery symptoms, fault codes, cell imbalance, or known damage history in detail.'"
+                                placeholder="Please describe battery symptoms, fault codes, cell imbalance, or known damage history in detail."
                             ></textarea>
                         </div>
                     </div>
 
-                    <div class="form-row warranty-row">
+                    <div v-if="formType === 'battery'" class="form-row warranty-row">
                         <div class="form-group full-width">
                             <label class="checkbox-label">
-                                <input type="checkbox" v-model="formData.disclosures.warrantyRequest">
+                                <input type="checkbox" v-model="formData.disclosures.warrantyRequest" @change="onBatteryWarrantyChange">
                                 <span>
-                                    I believe this visit may be covered under warranty<br>
-                                    <span class="checkbox-hint">(typically within one year of purchase from Charged Cycle Works)</span>
+                                    Request a warranty eligibility review for this battery service<br>
+                                    <span class="checkbox-hint">This does not confirm coverage. Normal service and diagnostic charges apply unless coverage is approved.</span>
                                 </span>
                             </label>
+
+                            <div v-if="formData.disclosures.warrantyRequest" class="warranty-followup">
+                                <fieldset>
+                                    <legend>Was this bike or battery purchased from Charged Cycle Works? <span class="required">*</span></legend>
+                                    <div class="choice-row">
+                                        <label><input type="radio" v-model="formData.disclosures.warrantyPurchaseSource" value="ccw"> Yes</label>
+                                        <label><input type="radio" v-model="formData.disclosures.warrantyPurchaseSource" value="other"> No</label>
+                                        <label><input type="radio" v-model="formData.disclosures.warrantyPurchaseSource" value="unsure"> Unsure</label>
+                                    </div>
+                                </fieldset>
+                                <div class="form-group warranty-date-field">
+                                    <label for="battery-purchase-date">Approximate Purchase Month <span class="optional-label">Optional</span></label>
+                                    <input id="battery-purchase-date" type="month" v-model="formData.disclosures.warrantyPurchaseDate">
+                                </div>
+                                <p class="verification-note">Reception must verify eligibility before any warranty coverage or waived charges are approved.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Disclosures and Authorization -->
-                <h2>Disclosures and Authorization</h2>
-                <div class="terms-section">
+                <template v-if="formType === 'express'">
+                    <h2>Express Visit Authorization</h2>
+                    <div class="terms-section express-authorization">
+                        <div class="disclosure-box express-terms-box">
+                            <h4>EXPRESS VISIT TERMS</h4>
+                            <p class="express-terms-intro">These condensed terms apply to every Express Visit:</p>
+                            <div class="express-terms-grid">
+                                <section>
+                                    <h5>1. Authorization and added work</h5>
+                                    <p>I authorize the selected services, reasonable operational testing, and a limited test ride when safe. Any additional repair, part, diagnostic work, or labor beyond the selected 30-minute Express scope requires separate approval and converts the visit to a standard service check-in.</p>
+                                </section>
+                                <section>
+                                    <h5>2. Availability, safety, and service outcome</h5>
+                                    <p>Express availability and same-day completion are not guaranteed. After 5:00 PM Mountain Time, availability must be confirmed with the receptionist. The shop may refuse Express service, stop work, isolate electrical power, or recommend standard diagnostics when a bike is unsafe or has hidden, intermittent, modified, or out-of-scope conditions.</p>
+                                </section>
+                                <section>
+                                    <h5>3. Parts, modifications, and warranty</h5>
+                                    <p>The shop is not responsible for failures caused by customer-supplied or non-OEM parts, tuning, firmware changes, wiring modifications, abuse, water intrusion, or impact damage. Unless otherwise stated on the invoice, workmanship is warranted for 30 days only for the specific service performed.</p>
+                                </section>
+                                <section>
+                                    <h5>4. Testing access and bike condition</h5>
+                                    <p>I will provide the keys, battery, fob, charger, or controls needed for testing, and the bike will arrive reasonably clean with at least 30% battery charge. If required access is unavailable, the shop is not responsible for conditions that could only have been identified through functional testing.</p>
+                                </section>
+                                <section>
+                                    <h5>5. Payment, pickup, and storage</h5>
+                                    <p>Payment is due in full before release. The bike must be collected by close of business the same day. Standard overnight storage fees and any remedies allowed by applicable law may apply if it is not collected as agreed.</p>
+                                </section>
+                                <section>
+                                    <h5>6. Property, documentation, and liability</h5>
+                                    <p>I will remove personal items and unsecured accessories. The shop may photograph the bike and access diagnostic data for service documentation and quality control. To the extent allowed by law, the shop is not responsible for unsecured property or incidental or consequential loss, including loss of use.</p>
+                                </section>
+                            </div>
+                            <label class="fee-checkbox-label express-acknowledgment">
+                                <input type="checkbox" v-model="formData.disclosures.expressTermsAcknowledged">
+                                <span>I have read, understand, and agree to all six Express Visit terms and conditions above. <span class="required">*</span></span>
+                            </label>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else>
+                    <h2>Disclosures and Authorization</h2>
+                    <div class="terms-section">
 
                     <!-- STANDARD: $99 Minimum Fee Acknowledgment -->
                     <div v-if="formType === 'standard'" class="disclosure-box fee-callout">
@@ -240,55 +541,85 @@
                     <!-- BATTERY: $400 Upfront / Last-Ditch Effort / Forfeiture Callout -->
                     <div v-else class="disclosure-box fee-callout battery-fee-callout">
                         <div class="fee-callout-header">
-                            <span class="fee-amount" style="color: #d32f2f;">$400 </span>
-                            <span class="fee-label" style="color: #d32f2f;">Upfront Repair Attempt & Diagnostic Fee</span>
+                            <span class="fee-amount">$400</span>
+                            <span class="fee-label">Upfront Repair Attempt & Diagnostic Fee</span>
                         </div>
+
                         <p class="fee-description">
-                            A <strong style="color: #d32f2f;">$400 upfront payment (pre-tax)</strong> is required at drop-off before any diagnostic or repair work begins. You explicitly acknowledge that attempting to repair a failed lithium battery is a <strong style="color: #d32f2f;">last-ditch effort and is NOT guaranteed in any capacity</strong>.
+                            A $400 upfront payment (pre-tax) is required at drop-off before any diagnostic or repair
+                            work begins. Repairing a failed lithium battery is a <strong>last-ditch effort with no
+                            guarantee of success</strong>.
                         </p>
-                        <p class="fee-description">
-                            <strong>Financial Outcomes & Credit Options:</strong><br>
-                            • <strong>If Unrecoverable:</strong> You are eligible to collect a <strong style="color: #d32f2f;">$250 refund upon physical pickup</strong> of your unrepaired battery.<br>
-                            • <strong>If Buying New:</strong> If the battery cannot be repaired and you elect to purchase a new replacement battery from Charged Cycle Works, we will apply the <strong style="color: #d32f2f;">entire $400 payment as a credit</strong> toward your new battery.<br>
-                            • <strong>If Abandoned:</strong> If you do not pick up the battery, you <strong style="color: #d32f2f;">forfeit the full $400 payment</strong>.
-                        </p>
+
+                        <ul class="fee-outcomes">
+                            <li><strong>If unrecoverable:</strong> $250 refunded upon physical pickup of your unrepaired battery.</li>
+                            <li><strong>If buying new:</strong> the full $400 is credited toward a replacement battery.</li>
+                            <li><strong>If abandoned:</strong> the full $400 is forfeited (see notice below).</li>
+                        </ul>
+
                         <div class="battery-checkbox-stack">
-                            <label class="fee-checkbox-label" style="margin-bottom: 12px; align-items: flex-start;">
-                                <input type="checkbox" v-model="formData.disclosures.batteryFeeAcknowledged" style="margin-top: 3px;">
-                                <span>I agree to pay the <strong style="color: #d32f2f;">$400 upfront fee</strong> and understand that repair is a <strong style="color: #d32f2f;">last-ditch effort with zero guarantee of success</strong>. I understand I am entitled to a $250 refund ONLY upon picking up an unrecoverable battery, or a $400 credit toward a new battery purchase. <span style="color: #e74c3c;">*</span></span>
+                            <label class="fee-checkbox-label">
+                                <input type="checkbox" v-model="formData.disclosures.batteryFeeAcknowledged">
+                                <span>I agree to pay the $400 upfront fee and understand repair is a last-ditch
+                                effort with no guarantee of success. I understand I'm entitled to a $250 refund only
+                                upon picking up an unrecoverable battery, or a $400 credit toward a new battery
+                                purchase. <span class="required-mark">*</span></span>
                             </label>
-                            <label class="fee-checkbox-label forfeiture-checkbox" style="align-items: flex-start;">
-                                <input type="checkbox" v-model="formData.disclosures.batteryPickupTerms" style="margin-top: 3px;">
-                                <span><strong>ABANDONMENT & TOTAL FORFEITURE NOTICE:</strong> I explicitly agree that I must pick up my battery within <strong style="color: #d32f2f;">10 business days</strong> after notification of service completion. If I fail to pick up the battery within 10 business days, I completely <strong style="color: #d32f2f;">forfeit all rights of ownership to the battery AND forfeit the entire $400 payment</strong> spent to attempt repair. Charged Cycle Works reserves the full right to dispose of, recycle, or salvage abandoned batteries without further notice or reimbursement. <span style="color: #e74c3c;">*</span></span>
+
+                            <label class="fee-checkbox-label forfeiture-checkbox">
+                                <input type="checkbox" v-model="formData.disclosures.batteryPickupTerms">
+                                <span><strong>Abandonment & total forfeiture notice:</strong> I must pick up my
+                                battery within <strong>10 business days</strong> of service-completion notification.
+                                If I fail to do so, I forfeit all rights of ownership to the battery
+                                <strong>and</strong> the entire $400 payment. Charged Cycle Works may dispose of,
+                                recycle, or salvage abandoned batteries without further notice or reimbursement.
+                                <span class="required-mark">*</span></span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Section A -->
                     <div class="disclosure-box">
-                        <h4>A. SAFETY AND BATTERY DISCLOSURES (check any that apply)</h4>
-                        <div class="checkbox-group">
-                            <label>
-                                <input type="checkbox" v-model="formData.disclosures.submerged">
-                                Submerged or heavy water exposure
+                        <h4>A. SAFETY AND BATTERY DISCLOSURES</h4>
+
+                        <template v-if="formType === 'standard'">
+                            <p class="safety-section-summary">Safety history is recorded separately for each bike in the Bikes & Services section above.</p>
+                            <label class="fee-checkbox-label safety-section-ack">
+                                <input type="checkbox" v-model="formData.disclosures.sectionAAck">
+                                <span>I confirm that I answered the safety-history question accurately for every bike in this submission. <span class="required">*</span></span>
                             </label>
-                            <label>
-                                <input type="checkbox" v-model="formData.disclosures.thermal">
-                                Smoke, sparks, overheating, burning smell, swelling, or fire/thermal event
-                            </label>
-                            <label>
-                                <input type="checkbox" v-model="formData.disclosures.impact">
-                                Impact to battery, charge port, or wiring harness
-                            </label>
-                        </div>
-                        <p style="margin-top: 15px; font-size: 13px; color: #6e6e73;">
-                            Customer confirms all known history has been disclosed. Shop may refuse service or isolate/remove the battery for safety.
-                        </p>
-                        <!-- Section A Checkbox Confirmation (Standard Mode Only) -->
-                        <label v-if="formType === 'standard'" class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
-                            <input type="checkbox" v-model="formData.disclosures.sectionAAck">
-                            <span>I confirm all known safety and battery history has been fully disclosed above. <span style="color: #e74c3c;">*</span></span>
-                        </label>
+                        </template>
+
+                        <template v-else>
+                            <fieldset class="battery-safety-question">
+                                <legend>Has this bike or battery experienced water submersion, overheating/fire, or a significant battery or wiring impact? <span class="required">*</span></legend>
+                                <div class="safety-answer-row">
+                                    <label>
+                                        <input type="radio" v-model="formData.disclosures.safetyHistory" value="none" @change="onBatterySafetyHistoryChange">
+                                        No — none of these have occurred
+                                    </label>
+                                    <label>
+                                        <input type="radio" v-model="formData.disclosures.safetyHistory" value="reported" @change="onBatterySafetyHistoryChange">
+                                        Yes — show the applicable conditions
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <div v-if="formData.disclosures.safetyHistory === 'reported'" class="safety-detail-panel">
+                                <p class="safety-instruction">Select only conditions that have actually occurred. These are not acknowledgment boxes.</p>
+                                <div class="safety-condition-list">
+                                    <label><input type="checkbox" v-model="formData.disclosures.submerged" @change="formData.disclosures.safetyMultipleConfirmed = false"> Submerged or heavy water exposure</label>
+                                    <label><input type="checkbox" v-model="formData.disclosures.thermal" @change="formData.disclosures.safetyMultipleConfirmed = false"> Smoke, sparks, overheating, burning smell, swelling, or fire/thermal event</label>
+                                    <label><input type="checkbox" v-model="formData.disclosures.impact" @change="formData.disclosures.safetyMultipleConfirmed = false"> Impact to battery, charge port, or wiring harness</label>
+                                </div>
+                                <label v-if="batterySafetySelectionCount() >= 2" class="safety-multiple-confirmation">
+                                    <input type="checkbox" v-model="formData.disclosures.safetyMultipleConfirmed">
+                                    <span>I selected multiple serious safety events and confirm that each selection is accurate. <span class="required">*</span></span>
+                                </label>
+                            </div>
+                        </template>
+
+                        <p class="safety-shop-note">Shop may refuse service or isolate/remove the battery when a reported condition creates a safety concern.</p>
                     </div>
 
                     <!-- Section B -->
@@ -370,12 +701,16 @@
                         </div>
                     </details>
 
-                </div>
+                    </div>
+                </template>
 
                 <!-- Signature Section -->
                 <div class="signature-section">
                     <h3>SIGNATURE</h3>
-                    <p class="terms-text">
+                    <p v-if="formType === 'express'" class="terms-text">
+                        By signing below, customer confirms they are the owner or authorized agent, agrees to the Express Visit terms, and authorizes the selected services.
+                    </p>
+                    <p v-else class="terms-text">
                         By signing below, customer confirms they are the owner or authorized agent. Customer has read and agrees to all of the above, including the Disclosures and Authorization section, the Pricing & Total Forfeiture terms, and the Terms and Conditions, and authorizes Charged Cycle Works to perform diagnostic and repair services as approved.
                     </p>
 
@@ -406,7 +741,7 @@
                 </div>
 
                 <button type="submit" class="submit-btn" :disabled="isSubmitting">
-                    <span v-if="!isSubmitting">Submit {{ formType === 'standard' ? 'Service Intake' : 'Battery Diagnostic' }} Form</span>
+                    <span v-if="!isSubmitting">{{ submitFormLabel }}</span>
                     <span v-else><span class="loading"></span> Submitting...</span>
                 </button>
 
