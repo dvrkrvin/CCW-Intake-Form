@@ -3,28 +3,33 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            formType: 'standard', // 'express', 'standard', or 'battery'
+            formType: 'standard', // 'express', 'standard', or dormant 'battery'
+            // Battery intake is preserved for possible future reuse, but CCW does not service batteries at this time.
+            batteryServiceEnabled: false,
+            batteryServiceUnavailableMessage: 'Battery Only Service is currently unavailable because we do not service batteries at this time.',
             maxBikes: 10,
             expressMinuteLimit: 30,
             nextBikeId: 2,
             mountainTimeTick: Date.now(),
             timeCheckInterval: null,
             expressServices: [
-                { id: 'emoto_off_bike_tire', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tire Replacement', minutes: 15 },
-                { id: 'emoto_off_bike_tube', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tube Replacement', minutes: 15 },
+                { id: 'emoto_off_bike_tire', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tire Replacement', minutes: 15, allowsQuantity: true },
+                { id: 'emoto_off_bike_tube', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tube Replacement', minutes: 15, allowsQuantity: true },
                 { id: 'emoto_front_tire', category: 'Tires & Tubes — E-Moto', name: 'On-Bike Front Tire or Tube Replacement', minutes: 20 },
                 { id: 'emoto_rear_tire', category: 'Tires & Tubes — E-Moto', name: 'On-Bike Rear Tire or Tube Replacement', minutes: 30 },
-                { id: 'ebike_off_bike_tire', category: 'Tires & Tubes — E-Bicycle', name: 'Off-Bike Tire Replacement', minutes: 15 },
-                { id: 'ebike_off_bike_tube', category: 'Tires & Tubes — E-Bicycle', name: 'Off-Bike Tube Replacement', minutes: 15 },
+                { id: 'ebike_off_bike_tire', category: 'Tires & Tubes — E-Bicycle', name: 'Off-Bike Tire Replacement', minutes: 15, allowsQuantity: true },
+                { id: 'ebike_off_bike_tube', category: 'Tires & Tubes — E-Bicycle', name: 'Off-Bike Tube Replacement', minutes: 15, allowsQuantity: true },
                 { id: 'ebike_front_tire', category: 'Tires & Tubes — E-Bicycle', name: 'On-Bike Front Tire or Tube Replacement', minutes: 15 },
                 { id: 'ebike_rear_tire', category: 'Tires & Tubes — E-Bicycle', name: 'On-Bike Rear Tire or Tube Replacement', minutes: 20 },
                 { id: 'tire_pressure', category: 'General Tires & Wheels', name: 'Tire Pressure Check & Adjustment', minutes: 5 },
-                { id: 'wheel_truing', category: 'General Tires & Wheels', name: 'Spoke Tensioning & Basic Wheel Truing', minutes: 30 },
-                { id: 'brake_lever_single', category: 'Brakes, Steering & Controls', name: 'Brake Lever Replacement (Single)', minutes: 14 },
-                { id: 'brake_levers_both', category: 'Brakes, Steering & Controls', name: 'Brake Lever Replacement (Both)', minutes: 28 },
+                { id: 'wheel_truing_on_bike', category: 'General Tires & Wheels', name: 'On-Bike Spoke Tensioning & Basic Wheel Truing', minutes: 30 },
+                { id: 'wheel_truing_off_bike', category: 'General Tires & Wheels', name: 'Off-Bike Spoke Tensioning & Basic Wheel Truing', minutes: 15, allowsQuantity: true },
+                { id: 'brake_lever_left', category: 'Brakes, Steering & Controls', name: 'Brake Lever Replacement (Left)', minutes: 14 },
+                { id: 'brake_lever_right', category: 'Brakes, Steering & Controls', name: 'Brake Lever Replacement (Right)', minutes: 14 },
                 { id: 'footpegs', category: 'Brakes, Steering & Controls', name: 'Footpeg Replacement (Pair)', minutes: 15 },
                 { id: 'headset_tightening', category: 'Brakes, Steering & Controls', name: 'Headset / Steering Stem Tightening', minutes: 15 },
-                { id: 'brake_pads', category: 'Brakes, Steering & Controls', name: 'Brake Pad Replacement', minutes: 15 },
+                { id: 'brake_pads_front', category: 'Brakes, Steering & Controls', name: 'Front Brake Pad Replacement', minutes: 15 },
+                { id: 'brake_pads_rear', category: 'Brakes, Steering & Controls', name: 'Rear Brake Pad Replacement', minutes: 15 },
                 { id: 'chain_service', category: 'Drivetrain', name: 'Chain Service (Cleaning, Lubricating, and Checking/Setting Tension)', minutes: 15 },
                 { id: 'belt_tension', category: 'Drivetrain', name: 'Primary Belt Tension Adjustment', minutes: 10 },
                 { id: 'safety_inspection', category: 'Inspections', name: 'Safety Inspection & Full-Frame Torque-Spec Bolt Check', minutes: 20 }
@@ -42,6 +47,7 @@ createApp({
                 smsConsent: false,
                 requestedService: '',
                 expressSelectedServiceIds: [],
+                expressServiceQuantities: {},
                 bikes: [
                     {
                         id: 1,
@@ -122,11 +128,19 @@ createApp({
 
         expressSelectedServices() {
             const selected = new Set(this.formData.expressSelectedServiceIds);
-            return this.expressServices.filter(service => selected.has(service.id));
+            return this.expressServices.flatMap(service => {
+                const quantity = service.allowsQuantity
+                    ? this.getExpressServiceQuantity(service)
+                    : (selected.has(service.id) ? 1 : 0);
+                return quantity > 0 ? [{ ...service, quantity }] : [];
+            });
         },
 
         expressSelectedMinutes() {
-            return this.expressSelectedServices.reduce((total, service) => total + service.minutes, 0);
+            return this.expressSelectedServices.reduce(
+                (total, service) => total + (service.minutes * service.quantity),
+                0
+            );
         },
 
         expressRemainingMinutes() {
@@ -136,9 +150,12 @@ createApp({
         expressHasNoFittingServices() {
             if (!this.expressSelectedServices.length) return false;
             const selected = new Set(this.formData.expressSelectedServiceIds);
-            return this.expressServices
-                .filter(service => !selected.has(service.id))
-                .every(service => service.minutes > this.expressRemainingMinutes);
+            return this.expressServices.every(service => {
+                if (service.allowsQuantity) {
+                    return service.minutes > this.expressRemainingMinutes;
+                }
+                return selected.has(service.id) || service.minutes > this.expressRemainingMinutes;
+            });
         },
 
         expressProgressPercent() {
@@ -179,6 +196,10 @@ createApp({
 
     methods: {
         switchFormType(type) {
+            if (type === 'battery' && !this.batteryServiceEnabled) {
+                this.errorMessage = this.batteryServiceUnavailableMessage;
+                return;
+            }
             this.formType = type;
             this.errorMessage = '';
         },
@@ -303,18 +324,49 @@ createApp({
         },
 
         isExpressServiceSelected(service) {
+            if (service.allowsQuantity) return this.getExpressServiceQuantity(service) > 0;
             return this.formData.expressSelectedServiceIds.includes(service.id);
         },
 
         isExpressServiceDisabled(service) {
+            if (service.allowsQuantity) {
+                return !this.isExpressServiceSelected(service) && !this.canIncrementExpressService(service);
+            }
             if (this.isExpressServiceSelected(service)) return false;
             return this.expressSelectedMinutes + service.minutes > this.expressMinuteLimit;
+        },
+
+        getExpressServiceQuantity(service) {
+            return Number(this.formData.expressServiceQuantities[service.id]) || 0;
+        },
+
+        canIncrementExpressService(service) {
+            return this.expressSelectedMinutes + service.minutes <= this.expressMinuteLimit;
+        },
+
+        incrementExpressService(service) {
+            if (!service.allowsQuantity || !this.canIncrementExpressService(service)) return;
+            this.formData.expressServiceQuantities[service.id] = this.getExpressServiceQuantity(service) + 1;
+        },
+
+        decrementExpressService(service) {
+            if (!service.allowsQuantity) return;
+            const nextQuantity = this.getExpressServiceQuantity(service) - 1;
+            if (nextQuantity > 0) {
+                this.formData.expressServiceQuantities[service.id] = nextQuantity;
+            } else {
+                delete this.formData.expressServiceQuantities[service.id];
+            }
+        },
+
+        expressServiceSelectionLabel(service) {
+            return service.quantity > 1 ? `${service.quantity} × ${service.name}` : service.name;
         },
 
         formatExpressServices() {
             const bike = this.formData.bikes[0];
             const serviceLines = this.expressSelectedServices.map(
-                service => `- ${service.name}`
+                service => `- ${this.expressServiceSelectionLabel(service)}`
             );
             return [
                 `Bike: ${bike.make.trim()} ${bike.model.trim()}`,
@@ -326,7 +378,7 @@ createApp({
         switchExpressToStandard() {
             const bike = this.formData.bikes[0];
             bike.requestedService = this.expressSelectedServices
-                .map(service => service.name)
+                .map(service => this.expressServiceSelectionLabel(service))
                 .join('\n');
             this.switchFormType('standard');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -697,6 +749,13 @@ createApp({
         async submitForm() {
             this.errorMessage = '';
 
+            // Defense in depth: prevent a battery submission even if formType is changed outside the disabled tab.
+            if (this.formType === 'battery' && !this.batteryServiceEnabled) {
+                this.errorMessage = this.batteryServiceUnavailableMessage;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             const f = this.formData;
             const requiredFields = [
                 [f.firstName.trim(),        'First name'],
@@ -753,7 +812,7 @@ createApp({
                 requiredFields.push(
                     [expressBike.make.trim(), 'Bike make'],
                     [expressBike.model.trim(), 'Bike model'],
-                    [f.expressSelectedServiceIds.length ? 'selected' : '', 'At least one express service']
+                    [this.expressSelectedServices.length ? 'selected' : '', 'At least one express service']
                 );
             } else {
                 requiredFields.push([f.requestedService.trim(), 'Requested service']);
@@ -881,7 +940,8 @@ createApp({
                         ? this.expressSelectedServices.map(service => ({
                             id: service.id,
                             name: service.name,
-                            minutes: service.minutes
+                            minutes: service.minutes,
+                            quantity: service.quantity
                         }))
                         : [],
                     customerInfo: {
@@ -943,6 +1003,7 @@ createApp({
                 smsConsent: false,
                 requestedService: '',
                 expressSelectedServiceIds: [],
+                expressServiceQuantities: {},
                 bikes: [
                     {
                         id: 1,

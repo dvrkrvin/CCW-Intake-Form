@@ -36,7 +36,7 @@
         <div class="container" :class="{ 'express-layout': formType === 'express', 'battery-layout': formType === 'battery' }">
             <!-- Form Type Toggle Slider -->
             <div class="toggle-container">
-                <div class="toggle-slider">
+                <div class="toggle-slider" :class="{ 'battery-service-disabled': !batteryServiceEnabled }">
                     <button
                         type="button"
                         :class="['toggle-btn', { active: formType === 'express' }]"
@@ -52,6 +52,7 @@
                         Bike Service
                     </button>
                     <button 
+                        v-if="batteryServiceEnabled"
                         type="button" 
                         :class="['toggle-btn', { active: formType === 'battery' }]"
                         @click="switchFormType('battery')"
@@ -404,25 +405,57 @@
                         <div class="express-service-menu">
                             <section v-for="category in expressServiceCategories" :key="category" class="express-service-category">
                                 <h3>{{ category }}</h3>
-                                <label
-                                    v-for="service in servicesForCategory(category)"
-                                    :key="service.id"
-                                    :class="['express-service-option', {
-                                        selected: isExpressServiceSelected(service),
-                                        disabled: isExpressServiceDisabled(service)
-                                    }]"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        v-model="formData.expressSelectedServiceIds"
-                                        :value="service.id"
-                                        :disabled="isExpressServiceDisabled(service)"
+                                <template v-for="service in servicesForCategory(category)" :key="service.id">
+                                    <div
+                                        v-if="service.allowsQuantity"
+                                        :class="['express-service-option', 'express-quantity-option', {
+                                            selected: isExpressServiceSelected(service),
+                                            disabled: isExpressServiceDisabled(service)
+                                        }]"
                                     >
-                                    <span class="express-service-copy">
-                                        <span class="express-service-name">{{ service.name }}</span>
-                                        <span class="express-service-time">~{{ service.minutes }} min</span>
-                                    </span>
-                                </label>
+                                        <span class="express-service-copy">
+                                            <span class="express-service-name">{{ service.name }}</span>
+                                            <span class="express-service-time">~{{ service.minutes }} min each</span>
+                                        </span>
+                                        <span class="express-quantity-stepper" role="group" :aria-label="`${service.name} quantity`">
+                                            <button
+                                                type="button"
+                                                class="express-quantity-button"
+                                                :disabled="getExpressServiceQuantity(service) === 0"
+                                                :aria-label="`Remove one ${service.name}`"
+                                                @click="decrementExpressService(service)"
+                                            >−</button>
+                                            <output class="express-quantity-value" :aria-label="`${getExpressServiceQuantity(service)} selected`">
+                                                {{ getExpressServiceQuantity(service) }}
+                                            </output>
+                                            <button
+                                                type="button"
+                                                class="express-quantity-button"
+                                                :disabled="!canIncrementExpressService(service)"
+                                                :aria-label="`Add one ${service.name}`"
+                                                @click="incrementExpressService(service)"
+                                            >+</button>
+                                        </span>
+                                    </div>
+                                    <label
+                                        v-else
+                                        :class="['express-service-option', {
+                                            selected: isExpressServiceSelected(service),
+                                            disabled: isExpressServiceDisabled(service)
+                                        }]"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            v-model="formData.expressSelectedServiceIds"
+                                            :value="service.id"
+                                            :disabled="isExpressServiceDisabled(service)"
+                                        >
+                                        <span class="express-service-copy">
+                                            <span class="express-service-name">{{ service.name }}</span>
+                                            <span class="express-service-time">~{{ service.minutes }} min</span>
+                                        </span>
+                                    </label>
+                                </template>
                             </section>
                         </div>
 
@@ -675,29 +708,73 @@
                     <!-- Interactive Accordion for Terms and Conditions (Applies to BOTH forms) -->
                     <details class="terms-accordion">
                         <summary class="terms-accordion-header">
-                            <span class="accordion-title">View Full Terms and Conditions (9 Articles)</span>
+                            <span class="accordion-title">View Full Terms and Conditions (13 Articles)</span>
                             <span class="accordion-hint">Click to expand &#9660;</span>
                         </summary>
                         <div class="terms-text accordion-body">
                             <h4>1. Estimates and authorization</h4>
-                            <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the total must be approved in writing (signature, email, or text/SMS from the number on file). Authorization records are kept with the repair order.</p>
+                            <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the authorized total must be approved in writing by signature, email, or text/SMS from the number on file. Authorization records are retained with the repair order.</p>
+                            <p>Unless the repair order states otherwise, an estimate is not a guaranteed final price. Taxes, shipping, outsourced services, and concealed damage may affect the final price, but charges beyond the customer's authorized amount require additional approval.</p>
+                            <p>The customer authorizes reasonable disassembly, inspection, and diagnostic procedures necessary to evaluate the reported condition. Diagnosis may require removal of parts or assemblies, and the equipment may not be safely or economically returnable to its exact pre-disassembly condition. The shop will obtain approval before performing additional billable repairs.</p>
+
                             <h4>2. Service minimum and disassembly</h4>
-                            <p>The standard $99 service minimum applies to general visits. For standalone battery repair drop-offs, a $400 upfront payment applies ($250 refundable upon physical pickup if unrecoverable, or $400 credited toward a new battery purchase). Customer explicitly acknowledges that battery repair is a last-ditch effort with zero guarantee of success. Some faults require disassembly to confirm. Parts or cells removed for inspection may not be reinstalled until authorized.</p>
-                            <h4>3. High-voltage and lithium battery safety & Total Abandonment Forfeiture</h4>
-                            <p>Lithium systems can fail without warning. If the shop determines a battery, wiring, or high-voltage component is unsafe, service may be refused and the equipment may be released unrepaired. Customer authorizes the shop to isolate power, remove the battery when necessary, and store it in a safe area. Hidden damage from water, impact, corrosion, or previous overheating may not be discoverable until disassembly. <strong>For standalone battery drop-offs, any battery not picked up within 10 business days of notice of completion is deemed legally abandoned and forfeited; the customer explicitly agrees to forfeit all ownership rights to the battery AND forfeit the entire $400 upfront payment. Charged Cycle Works reserves the full right to recycle, salvage, or dispose of forfeited batteries without customer recourse or reimbursement.</strong></p>
+                            <p>The standard $99 service minimum applies to every general-service visit, including when repairs are declined, a reported problem cannot be duplicated, or diagnosis is inconclusive. For bikes requiring diagnosis, the service minimum authorizes the first hour of diagnostic work. Additional approved labor is billed at the stated shop rate unless a flat-rate quote is provided.</p>
+                            <p>Some faults require disassembly to confirm. Parts removed during diagnosis may not be suitable for reinstallation until the customer authorizes the necessary repair or reassembly work. If the customer declines a repair after disassembly, additional labor or parts may be necessary to safely reassemble the bike. The shop is not required to reassemble or release equipment in a condition the shop reasonably believes is unsafe to operate.</p>
+
+                            <h4>3. Electrical and lithium-battery safety</h4>
+                            <p>Lithium battery systems and high-current electrical components can fail without warning. If the shop determines that a battery, wiring harness, controller, charger, or other component presents a safety concern, service may be refused or stopped.</p>
+                            <p>The customer authorizes the shop to disconnect or isolate electrical power and remove a battery when reasonably necessary to protect people or property. Hidden damage caused by water, impact, corrosion, overheating, previous repairs, improper charging, or wiring modifications may not be discoverable until disassembly or testing.</p>
+                            <p>Charged Cycle Works does not currently provide internal battery-cell repair or rebuilding services. This section applies to batteries and electrical systems accompanying bikes submitted for otherwise authorized service. Unsafe equipment will be handled, stored, released, or disposed of only as permitted by applicable law. Any extraordinary third-party transportation, containment, or disposal charge requires customer authorization unless immediate action is reasonably necessary to address an imminent safety hazard.</p>
+
                             <h4>4. Aftermarket and customer-supplied parts</h4>
-                            <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility and safety issues. The shop is not responsible for failures caused by non-OEM parts, tuning, firmware changes, or wiring modifications. Additional diagnostics may be required to identify modification-related faults.</p>
-                            <h4>5. Testing and intermittent conditions</h4>
-                            <p>Customer authorizes bench testing, load testing, and limited test riding when safe and necessary to verify repairs. Intermittent symptoms may not reproduce. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under test conditions.</p>
-                            <h4>6. Warranty</h4>
-                            <p>Unless otherwise stated on the invoice, workmanship is warranted for 30 days from completion for the specific repair performed. Warranty does not cover abuse, competition use, water intrusion, impact damage, altered firmware or tuning after service, customer modifications, or unrelated failures. Manufacturer parts warranty is handled per manufacturer policy when applicable.</p>
-                            <h4>7. Storage, fees, and release</h4>
-                            <p>Equipment is released only after payment in full. For general bikes, the first 7 calendar days after completion notice are free, then storage is $20 per day. For standalone battery intakes, failure to pick up within 10 business days results in immediate and total forfeiture of both the physical battery and the entire $400 repair attempt payment. If equipment is not picked up, the shop may pursue remedies allowed by applicable state law, including lien processes or recycling disposal.</p>
-                            <h4>8. Property, photos, and data</h4>
-                            <p>Remove personal items and removable accessories before service. The shop is not responsible for loss or damage to personal property or unsecured accessories. The shop may take photos for documentation and quality control. Promotional use requires separate consent. Customer authorizes access to diagnostic data (logs, firmware versions, app-based diagnostics) as needed for service.</p>
-                            <h4>9. Right to refuse service and limitation of liability</h4>
-                            <p>The shop may refuse service for safety concerns, undisclosed hazards, abusive behavior, or if the repair is not economically or technically feasible. To the extent allowed by law, the shop is not responsible for incidental or consequential damages, including loss of use. Service work may reveal additional issues during disassembly and testing, especially on modified or water-exposed equipment.</p>
-                            <p style="margin-top: 20px; font-style: italic; font-size: 12px;">Note: Lien, abandoned property, and consumer rights vary by state. Review with local counsel to align this form with Utah requirements.</p>
+                            <p>Aftermarket electrical modifications and customer-supplied parts can create compatibility, performance, and safety issues. The customer represents that they are authorized to possess and install any customer-supplied component and that, to the best of their knowledge, the component is authentic, undamaged, and suitable for the requested use.</p>
+                            <p>Charged Cycle Works does not warrant the quality, authenticity, condition, compatibility, durability, or manufacturer specifications of customer-supplied parts. Installation does not constitute a representation that the component is suitable for every use or compatible with every other component on the bike.</p>
+                            <p>The shop is not responsible for a failure to the extent caused by a customer-supplied or non-OEM part, incompatible component, tuning change, altered firmware, unauthorized wiring modification, abuse, water intrusion, impact damage, or a modification made after service. Charged Cycle Works remains responsible for correcting covered defects in its own workmanship under Section 7. The shop may refuse to install a component it reasonably believes is unsafe, incompatible, counterfeit, damaged, unlawfully sourced, or inappropriate for the requested application.</p>
+
+                            <h4>5. Custom builds and substantial modifications</h4>
+                            <p>When Charged Cycle Works assembles or substantially modifies a customer-owned bike, the approved repair order, parts list, and documented change orders define the authorized configuration. Performance estimates are approximations and are not guarantees of speed, range, power, reliability, or suitability for a particular use.</p>
+                            <p>Changes to a bike's motor, controller, battery system, firmware, gearing, brakes, suspension, frame, wheels, speed settings, or power output can change its handling, stopping distance, range, reliability, legal classification, and eligibility for OEM warranty coverage.</p>
+                            <p>The customer understands that laws governing operation, registration, insurance, licensing, and permitted riding locations vary by vehicle configuration and location. Charged Cycle Works does not promise that a modified bike may lawfully be operated on every public road, path, trail, or property. The customer is responsible for lawful operation after delivery. This provision does not excuse Charged Cycle Works from performing authorized work with reasonable care.</p>
+                            <p>The shop may refuse or discontinue any modification it reasonably believes would create an unacceptable safety risk, compromise structural or braking capacity, defeat a required safety feature, or violate applicable law.</p>
+
+                            <h4>6. Testing, access, and intermittent conditions</h4>
+                            <p>The customer authorizes reasonable bench testing, powered testing, load testing, and limited test riding when the shop determines it is safe and necessary to diagnose a condition or verify a repair.</p>
+                            <p>The customer agrees to provide all keys, batteries, fobs, chargers, passwords, applications, adapters, or controls reasonably required to operate and test the bike. If required access or equipment is not provided, Charged Cycle Works is not responsible for a condition that could only reasonably have been identified through the unavailable test.</p>
+                            <p>Intermittent symptoms may not reproduce during service. The shop cannot guarantee diagnosis or correction of a condition that cannot be duplicated under reasonable test conditions. Test riding and powered testing will be limited to what the shop reasonably considers necessary. Testing does not represent a comprehensive certification that every component or condition on the bike is safe or defect-free.</p>
+
+                            <h4>7. Limited workmanship warranty</h4>
+                            <p>Unless a different written warranty appears on the invoice, Charged Cycle Works provides a limited 30-day workmanship warranty beginning on the date the customer is notified that service is complete.</p>
+                            <p>This warranty covers a demonstrable defect in Charged Cycle Works' performance of the specific labor identified on the repair order. The exclusive initial remedy is inspection and, when the claim is covered, correction of the affected workmanship without an additional labor charge. The customer must provide prompt notice and a reasonable opportunity for Charged Cycle Works to inspect the bike before another person alters or repairs the claimed condition.</p>
+                            <p>This warranty does not cover the inherent condition or failure of an existing component, normal wear, maintenance items, unrelated failures, or a defect in a customer-supplied part. It also does not cover damage caused by accident, abuse, competition use, commercial misuse, improper storage or charging, water intrusion, impact, corrosion, unauthorized repair, subsequent modification, altered firmware or tuning, or continued operation after a warning or unsafe condition becomes apparent. An exclusion applies only to the extent the excluded condition caused or contributed to the claimed failure.</p>
+                            <p>Manufacturer warranties on parts supplied by Charged Cycle Works are administered according to the applicable manufacturer's policy. No employee may expand this warranty except through a written statement included on the final invoice or separately signed by an authorized representative. These terms do not eliminate rights that cannot lawfully be waived under applicable consumer law.</p>
+
+                            <h4>8. Replaced parts and bike condition</h4>
+                            <p>Unless otherwise requested before service begins, replaced parts may be discarded, recycled, returned to a supplier, or retained for warranty evaluation. Parts subject to a core charge or manufacturer warranty return may not be available for return to the customer.</p>
+                            <p>Service of one reported condition is not a comprehensive inspection of the entire bike unless a comprehensive inspection is specifically listed on the repair order. Charged Cycle Works may notify the customer of other observed concerns, but the absence of such notice is not a representation that no other defect exists.</p>
+                            <p>The customer agrees not to operate a bike after being informed that it is unsafe. If the customer requests the return of unrepaired equipment, the shop may identify the known unsafe condition on the invoice and may disable or separate a component when reasonably necessary to prevent accidental operation, subject to applicable law.</p>
+
+                            <h4>9. Payment, storage, liens, and release</h4>
+                            <p>Payment is due in full before equipment is released, except where otherwise required by law. For general bikes, the first seven calendar days after documented completion notice are free. Storage is then charged at $20 per calendar day.</p>
+                            <p>Completion and pickup notices may be delivered using the telephone number or email address provided by the customer. The customer is responsible for keeping that contact information current.</p>
+                            <p>Unclaimed equipment does not automatically become the property of Charged Cycle Works solely because a pickup deadline has passed. The shop may retain possession, assess disclosed storage charges, and pursue lien, sale, disposal, or other remedies only as allowed by applicable law.</p>
+
+                            <h4>10. Personal property, photographs, and diagnostic data</h4>
+                            <p>The customer will remove bags, tools, electronics, valuables, and unsecured accessories not required for service. To the extent permitted by law, Charged Cycle Works is not responsible for undocumented or unsecured personal property left with the bike.</p>
+                            <p>The customer authorizes photographs and video reasonably necessary to document the bike's condition, identify components, obtain authorization, support warranty claims, and verify service quality. Promotional use requires separate consent.</p>
+                            <p>The customer authorizes access to diagnostic information reasonably necessary for service, including fault logs, firmware versions, controller settings, and application-based diagnostics. The customer is responsible for backing up personal settings or data when applicable. The shop will use supplied access credentials only for the authorized service purpose and may document relevant settings in the repair record.</p>
+
+                            <h4>11. Ownership and authority</h4>
+                            <p>By submitting the bike, the customer represents that they are at least 18 years old and are either the lawful owner or have the owner's authority to approve service and take possession of the bike. The customer represents that the bike and supplied parts are not stolen and are not subject to a restriction that prohibits the requested work.</p>
+                            <p>The customer agrees to disclose any known ownership, insurance, lienholder, manufacturer, or warranty restriction that materially affects the requested service.</p>
+
+                            <h4>12. Right to refuse or stop service</h4>
+                            <p>Charged Cycle Works may refuse, suspend, or discontinue service because of an undisclosed hazard, unsafe equipment, suspected stolen property, abusive or threatening behavior, an unlawful requested configuration, unavailable parts or information, or a repair that is not technically or economically feasible. If service is stopped, the customer remains responsible for authorized labor, parts, storage, and other charges already incurred.</p>
+
+                            <h4>13. Limitation of damages and preservation of legal rights</h4>
+                            <p>To the extent permitted by law, Charged Cycle Works is not responsible for incidental or consequential economic damages, including loss of use, lost riding time, substitute transportation, or lost profits.</p>
+                            <p>Nothing in these terms releases Charged Cycle Works from liability that cannot lawfully be waived, limits a nonwaivable consumer remedy, or excuses Charged Cycle Works from performing authorized services with reasonable care.</p>
+                            <p>If any provision is determined to be unenforceable, that provision will be enforced to the maximum lawful extent and the remaining provisions will continue in effect. Utah law governs the service transaction except where controlling law requires otherwise.</p>
+                            <p style="margin-top: 20px; font-style: italic; font-size: 12px;">These service terms should be reviewed periodically with Utah counsel as laws and business practices change.</p>
                         </div>
                     </details>
 
@@ -711,7 +788,7 @@
                         By signing below, customer confirms they are the owner or authorized agent, agrees to the Express Visit terms, and authorizes the selected services.
                     </p>
                     <p v-else class="terms-text">
-                        By signing below, customer confirms they are the owner or authorized agent. Customer has read and agrees to all of the above, including the Disclosures and Authorization section, the Pricing & Total Forfeiture terms, and the Terms and Conditions, and authorizes Charged Cycle Works to perform diagnostic and repair services as approved.
+                        By signing below, customer confirms they are at least 18 years old and are the owner or authorized agent. Customer has read and agrees to the Disclosures and Authorization section and the Terms and Conditions, authorizes Charged Cycle Works to perform diagnostic and repair services as approved, and agrees to conduct this transaction electronically. Customer acknowledges that the completed agreement may be provided and retained electronically and may request a copy of the signed agreement. For a custom build or substantial modification, customer also acknowledges the approved configuration, documented change orders, modification risks, operating limitations, and delivery condition recorded on the repair order.
                     </p>
 
                     <div class="signature-canvas-container">

@@ -113,6 +113,10 @@ body {
     color: var(--accent-ink);
 }
 
+.toggle-slider.battery-service-disabled .toggle-indicator {
+    width: calc((100% - 8px) / 2);
+}
+
 .toggle-indicator {
     position: absolute;
     top: 4px;
@@ -577,6 +581,66 @@ h3 {
     flex-shrink: 0;
     margin-top: 2px;
     accent-color: #087cff;
+}
+
+.express-quantity-option {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 60px;
+    cursor: default;
+}
+
+.express-quantity-option .express-service-copy {
+    display: block;
+}
+
+.express-quantity-option .express-service-time {
+    margin-top: 3px;
+}
+
+.express-quantity-stepper {
+    display: inline-grid;
+    grid-template-columns: 40px 32px 40px;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid #9ba9a5;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.express-quantity-button {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    color: #005fc7;
+    background: #f1f7ff;
+    border: 0;
+    border-radius: 0;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
+    touch-action: manipulation;
+}
+
+.express-quantity-button:hover:not(:disabled),
+.express-quantity-button:focus-visible:not(:disabled) {
+    color: white;
+    background: #087cff;
+}
+
+.express-quantity-button:disabled {
+    color: #9ca6a3;
+    background: #ecefed;
+    cursor: not-allowed;
+}
+
+.express-quantity-value {
+    color: #24312e;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
 }
 
 .express-service-copy {
