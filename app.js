@@ -75,6 +75,7 @@ createApp({
                 { key: 'battery_repair_warranty', category: 'Battery & Electrical', name: 'Battery Repair (Warranty Only)', examples: 'Available only for qualifying warranty claims; eligibility must be verified' },
                 { key: 'battery_lid', category: 'Battery & Electrical', name: 'Install / Replace Battery Lid' },
                 { key: 'battery_tray_front', category: 'Battery & Electrical', name: 'Install / Replace Front Battery Tray' },
+                { key: 'controller_mid_size', category: 'Battery & Electrical', name: 'Install / Replace and Tune Controller (Mid-Size Bike)' },
                 { key: 'dc_converter', category: 'Battery & Electrical', name: 'Install / Replace DC/DC Converter' },
                 { key: 'main_wire_harness', category: 'Battery & Electrical', name: 'Install / Replace Main Wiring Harness' },
 
