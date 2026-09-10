@@ -36,11 +36,13 @@
         <div class="container" :class="{ 'express-layout': formType === 'express', 'battery-layout': formType === 'battery' }">
             <!-- Form Type Toggle Slider -->
             <div class="toggle-container">
-                <div class="toggle-slider" :class="{ 'battery-service-disabled': !batteryServiceEnabled }">
+                <div class="toggle-slider" :class="{ 'battery-service-disabled': !batteryServiceEnabled }" role="tablist" aria-label="Choose a service intake type">
                     <button
                         type="button"
                         :class="['toggle-btn', { active: formType === 'express' }]"
                         @click="switchFormType('express')"
+                        role="tab"
+                        :aria-selected="formType === 'express'"
                     >
                         Express Visit
                     </button>
@@ -48,6 +50,8 @@
                         type="button" 
                         :class="['toggle-btn', { active: formType === 'standard' }]"
                         @click="switchFormType('standard')"
+                        role="tab"
+                        :aria-selected="formType === 'standard'"
                     >
                         Bike Service
                     </button>
@@ -71,13 +75,34 @@
             </div>
 
             <form @submit.prevent="submitForm" novalidate>
+                <nav v-if="formType === 'standard'" class="workflow-progress" aria-label="Bike Service progress">
+                    <button type="button" :class="{ active: standardStep === 1, complete: standardStep > 1 }" :aria-current="standardStep === 1 ? 'step' : null" @click="goToStandardStep(1)">
+                        <span class="workflow-number">{{ standardStep > 1 ? '✓' : '1' }}</span>
+                        <span>Customer</span>
+                    </button>
+                    <span class="workflow-line" :class="{ complete: standardStep > 1 }"></span>
+                    <button type="button" :class="{ active: standardStep === 2, complete: standardStep > 2 }" :aria-current="standardStep === 2 ? 'step' : null" :disabled="standardStep < 2" @click="goToStandardStep(2)">
+                        <span class="workflow-number">{{ standardStep > 2 ? '✓' : '2' }}</span>
+                        <span>Bikes</span>
+                    </button>
+                    <span class="workflow-line" :class="{ complete: standardStep > 2 }"></span>
+                    <button type="button" :class="{ active: standardStep === 3 }" :aria-current="standardStep === 3 ? 'step' : null" :disabled="standardStep < 3" @click="goToStandardStep(3)">
+                        <span class="workflow-number">3</span>
+                        <span>Review & Sign</span>
+                    </button>
+                </nav>
+
+                <div v-if="stepErrorMessage && formType === 'standard'" class="step-error-message" role="alert">{{ stepErrorMessage }}</div>
+
+                <section v-show="formType !== 'standard' || standardStep === 1" class="workflow-step-panel">
                 <!-- Customer Information -->
                 <h2>Customer Information</h2>
                 <div class="form-section">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>First Name <span class="required">*</span></label>
+                            <label for="customer-first-name">First Name <span class="required">*</span></label>
                             <input
+                                id="customer-first-name"
                                 type="text"
                                 v-model="formData.firstName"
                                 @input="onNameInput('firstName')"
@@ -86,8 +111,9 @@
                             >
                         </div>
                         <div class="form-group">
-                            <label>Last Name <span class="required">*</span></label>
+                            <label for="customer-last-name">Last Name <span class="required">*</span></label>
                             <input
+                                id="customer-last-name"
                                 type="text"
                                 v-model="formData.lastName"
                                 @input="onNameInput('lastName')"
@@ -99,8 +125,9 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Phone Number <span class="required">*</span></label>
+                            <label for="customer-phone">Phone Number <span class="required">*</span></label>
                             <input
+                                id="customer-phone"
                                 type="tel"
                                 v-model="formData.phone"
                                 @input="onPhoneInput"
@@ -109,8 +136,9 @@
                             >
                         </div>
                         <div class="form-group">
-                            <label>Email Address <span class="required">*</span></label>
+                            <label for="customer-email">Email Address <span class="required">*</span></label>
                             <input
+                                id="customer-email"
                                 type="email"
                                 v-model="formData.email"
                                 autocomplete="email"
@@ -121,8 +149,9 @@
                     <template v-if="formType !== 'express'">
                         <div class="form-row">
                             <div class="form-group full-width">
-                                <label>Address Line 1 <span class="required">*</span></label>
+                                <label for="customer-address-1">Address Line 1 <span class="required">*</span></label>
                                 <input
+                                    id="customer-address-1"
                                     type="text"
                                     v-model="formData.address1"
                                     placeholder="Street address"
@@ -133,8 +162,9 @@
 
                         <div class="form-row">
                             <div class="form-group full-width">
-                                <label>Address Line 2</label>
+                                <label for="customer-address-2">Address Line 2</label>
                                 <input
+                                    id="customer-address-2"
                                     type="text"
                                     v-model="formData.address2"
                                     placeholder="Apt, suite, unit, etc. (optional)"
@@ -145,8 +175,9 @@
 
                         <div class="form-row city-state-zip-row">
                             <div class="form-group city-field">
-                                <label>City <span class="required">*</span></label>
+                                <label for="customer-city">City <span class="required">*</span></label>
                                 <input
+                                    id="customer-city"
                                     type="text"
                                     v-model="formData.city"
                                     autocomplete="address-level2"
@@ -156,33 +187,53 @@
                             <div
                                 class="form-group state-field"
                                 ref="stateField"
-                                @focusin="showStateSuggestions = true"
+                                @focusout="onStateComboboxFocusOut($event)"
                             >
-                                <label>State <span class="required">*</span></label>
-                                <input
-                                    type="text"
-                                    v-model="formData.state"
-                                    maxlength="2"
-                                    @input="onStateInput"
-                                    @blur="onStateBlur"
-                                    autocomplete="off"
-                                />
-                                <div v-if="showStateSuggestions && filteredStates.length" class="state-dropdown">
-                                    <div
-                                        v-for="s in filteredStates"
-                                        :key="s.abbr"
-                                        class="state-option"
-                                        @pointerdown.prevent="selectState(s)"
+                                <label for="customer-state">State <span class="required">*</span></label>
+                                <div class="state-combobox-input-shell">
+                                    <input
+                                        id="customer-state"
+                                        type="text"
+                                        v-model="stateQuery"
+                                        placeholder="Search"
+                                        autocomplete="off"
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        :aria-expanded="showStateSuggestions"
+                                        aria-controls="state-listbox"
+                                        :aria-activedescendant="activeStateOptionIndex >= 0 ? `state-option-${activeStateOptionIndex}` : null"
+                                        @focus="openStateMenu"
+                                        @input="onStateInput"
+                                        @keydown.down.prevent="moveStateActive(1)"
+                                        @keydown.up.prevent="moveStateActive(-1)"
+                                        @keydown.enter.prevent="chooseActiveState"
+                                        @keydown.esc="showStateSuggestions = false"
                                     >
-                                        <span class="state-abbr">{{ s.abbr }}</span>
-                                        <span class="state-name">{{ s.name }}</span>
-                                    </div>
+                                    <span class="combobox-chevron" aria-hidden="true"></span>
+                                </div>
+                                <div v-if="showStateSuggestions" id="state-listbox" class="state-dropdown" role="listbox">
+                                    <button
+                                        v-for="(s, optionIndex) in filteredStates"
+                                        :id="`state-option-${optionIndex}`"
+                                        :key="s.abbr"
+                                        type="button"
+                                        role="option"
+                                        :aria-selected="stateSelection === s.abbr"
+                                        :class="['state-option', { active: activeStateOptionIndex === optionIndex, selected: stateSelection === s.abbr }]"
+                                        @mousedown.prevent
+                                        @click="selectState(s)"
+                                    >
+                                        <span><span class="state-abbr">{{ s.abbr }}</span><span class="state-name">{{ s.name }}</span></span>
+                                        <span v-if="stateSelection === s.abbr" class="state-check" aria-hidden="true">✓</span>
+                                    </button>
+                                    <p v-if="!filteredStates.length" class="state-empty">No matching state. Try its two-letter abbreviation.</p>
                                 </div>
                             </div>
 
                             <div class="form-group">
-                                <label>ZIP Code <span class="required">*</span></label>
+                                <label for="customer-zip">ZIP Code <span class="required">*</span></label>
                                 <input
+                                    id="customer-zip"
                                     type="text"
                                     v-model="formData.zip"
                                     @input="onZipInput"
@@ -204,8 +255,14 @@
                         </div>
                     </div>
                 </div>
+                <div v-if="formType === 'standard'" class="workflow-actions">
+                    <span class="workflow-action-hint">Next: add bike details and requested services</span>
+                    <button type="button" class="workflow-primary" @click="goToStandardStep(2)">Continue to Bikes <span aria-hidden="true">→</span></button>
+                </div>
+                </section>
 
                 <!-- Service Request -->
+                <section v-show="formType !== 'standard' || standardStep === 2" class="workflow-step-panel">
                 <h2>{{ formType === 'standard' ? 'Bikes & Services Requested' : formType === 'express' ? 'Express Services' : 'Battery Diagnostic Request' }}</h2>
                 <div class="form-section">
                     <template v-if="formType === 'standard'">
@@ -214,79 +271,270 @@
                         <div
                             v-for="(bike, index) in formData.bikes"
                             :key="bike.id"
-                            class="bike-card"
+                            :class="['bike-card', { collapsed: expandedBikeId !== bike.id }]"
                         >
                             <div class="bike-card-header">
-                                <h3>{{ index === 0 ? 'Bike Details' : `Bike ${index + 1} Details` }}</h3>
-                                <button
-                                    v-if="formData.bikes.length > 1"
-                                    type="button"
-                                    class="remove-bike-btn"
-                                    :aria-label="`Remove Bike ${index + 1}`"
-                                    @click="removeBike(index)"
-                                >
-                                    Remove
-                                </button>
+                                <div>
+                                    <h3>{{ index === 0 ? 'Bike Details' : `Bike ${index + 1} Details` }}</h3>
+                                    <p v-if="expandedBikeId !== bike.id" class="bike-card-summary">{{ bikeSummary(bike) }}</p>
+                                </div>
+                                <div class="bike-card-actions">
+                                    <button type="button" class="bike-card-toggle" @click="toggleBike(bike)">{{ expandedBikeId === bike.id ? 'Collapse' : 'Edit' }}</button>
+                                    <button
+                                        v-if="formData.bikes.length > 1"
+                                        type="button"
+                                        class="remove-bike-btn"
+                                        :aria-label="`Remove Bike ${index + 1}`"
+                                        @click="removeBike(index)"
+                                    >Remove</button>
+                                </div>
                             </div>
 
+                            <div v-show="expandedBikeId === bike.id" class="bike-card-body">
+
+                            <p class="bike-selector-guidance">Start typing to search, or tap a field to browse the complete list.</p>
                             <div class="form-row bike-make-model-row">
                                 <div class="form-group">
                                     <label :for="`bike-${bike.id}-make`">Make <span class="required">*</span></label>
-                                    <input
-                                        :id="`bike-${bike.id}-make`"
-                                        type="text"
-                                        v-model="bike.make"
-                                        placeholder="e.g., E Ride Pro"
-                                        autocomplete="off"
-                                    >
+                                    <div class="bike-combobox" @focusout="onBikeComboboxFocusOut(bike, 'makeMenuOpen', $event)">
+                                        <div :class="['bike-combobox-input-shell', { 'manual-entry': bike.makeSelection === '__other__' }]">
+                                            <input
+                                                :id="`bike-${bike.id}-make`"
+                                                type="text"
+                                                v-model="bike.make"
+                                                :placeholder="bike.makeSelection === '__other__' ? 'Type bike make' : 'Search or select a make'"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                :aria-expanded="Boolean(bike.makeMenuOpen)"
+                                                :aria-controls="`bike-${bike.id}-make-listbox`"
+                                                :aria-activedescendant="bike.activeMakeOptionIndex >= 0 ? `bike-${bike.id}-make-option-${bike.activeMakeOptionIndex}` : null"
+                                                @focus="openBikeMakeMenu(bike)"
+                                                @input="onBikeMakeInput(bike)"
+                                                @keydown.down.prevent="moveBikeMakeActive(bike, 1)"
+                                                @keydown.up.prevent="moveBikeMakeActive(bike, -1)"
+                                                @keydown.enter.prevent="chooseActiveBikeMake(bike)"
+                                                @keydown.esc="bike.makeMenuOpen = false"
+                                            >
+                                            <button
+                                                v-if="bike.makeSelection === '__other__'"
+                                                type="button"
+                                                class="combobox-mode-button"
+                                                @mousedown.prevent
+                                                @click="returnToBikeMakeList(bike)"
+                                            >Browse list</button>
+                                            <span v-else class="combobox-chevron" aria-hidden="true"></span>
+                                        </div>
+                                        <div
+                                            v-if="bike.makeMenuOpen && bike.makeSelection !== '__other__'"
+                                            :id="`bike-${bike.id}-make-listbox`"
+                                            class="bike-combobox-menu"
+                                            role="listbox"
+                                        >
+                                            <button
+                                                v-for="(make, optionIndex) in filteredBikeMakes(bike)"
+                                                :id="`bike-${bike.id}-make-option-${optionIndex}`"
+                                                :key="make"
+                                                type="button"
+                                                role="option"
+                                                :aria-selected="bike.makeSelection === make"
+                                                :class="['bike-combobox-option', { active: bike.activeMakeOptionIndex === optionIndex, selected: bike.makeSelection === make }]"
+                                                @mousedown.prevent
+                                                @click="selectBikeMake(bike, make)"
+                                            >
+                                                <span>{{ make }}</span><span v-if="bike.makeSelection === make" aria-hidden="true">✓</span>
+                                            </button>
+                                            <p v-if="!filteredBikeMakes(bike).length" class="bike-combobox-empty">No matching makes found.</p>
+                                            <button
+                                                :id="`bike-${bike.id}-make-option-${filteredBikeMakes(bike).length}`"
+                                                type="button"
+                                                role="option"
+                                                aria-selected="false"
+                                                :class="['bike-combobox-option', 'bike-combobox-custom-option', { active: bike.activeMakeOptionIndex === filteredBikeMakes(bike).length }]"
+                                                @mousedown.prevent
+                                                @click="useCustomBikeMake(bike)"
+                                            >My bike’s make isn’t listed</button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label :for="`bike-${bike.id}-model`">Model <span class="required">*</span></label>
-                                    <input
-                                        :id="`bike-${bike.id}-model`"
-                                        type="text"
-                                        v-model="bike.model"
-                                        placeholder="e.g., SS 4.0"
-                                        autocomplete="off"
-                                    >
+                                    <div class="bike-combobox" @focusout="onBikeComboboxFocusOut(bike, 'modelMenuOpen', $event)">
+                                        <div :class="['bike-combobox-input-shell', { 'manual-entry': bike.modelSelection === '__other__' }]">
+                                            <input
+                                                :id="`bike-${bike.id}-model`"
+                                                type="text"
+                                                v-model="bike.model"
+                                                :disabled="!bike.makeSelection"
+                                                :placeholder="bikeModelPlaceholder(bike)"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                :aria-expanded="Boolean(bike.modelMenuOpen)"
+                                                :aria-controls="`bike-${bike.id}-model-listbox`"
+                                                :aria-activedescendant="bike.activeModelOptionIndex >= 0 ? `bike-${bike.id}-model-option-${bike.activeModelOptionIndex}` : null"
+                                                @focus="openBikeModelMenu(bike)"
+                                                @input="onBikeModelInput(bike)"
+                                                @keydown.down.prevent="moveBikeModelActive(bike, 1)"
+                                                @keydown.up.prevent="moveBikeModelActive(bike, -1)"
+                                                @keydown.enter.prevent="chooseActiveBikeModel(bike)"
+                                                @keydown.esc="bike.modelMenuOpen = false"
+                                            >
+                                            <button
+                                                v-if="bike.modelSelection === '__other__' && getBikeModels(bike).length"
+                                                type="button"
+                                                class="combobox-mode-button"
+                                                @mousedown.prevent
+                                                @click="returnToBikeModelList(bike)"
+                                            >Browse list</button>
+                                            <span v-else-if="getBikeModels(bike).length" class="combobox-chevron" aria-hidden="true"></span>
+                                        </div>
+                                        <div
+                                            v-if="bike.modelMenuOpen && bike.modelSelection !== '__other__' && getBikeModels(bike).length"
+                                            :id="`bike-${bike.id}-model-listbox`"
+                                            class="bike-combobox-menu"
+                                            role="listbox"
+                                        >
+                                            <button
+                                                v-for="(model, optionIndex) in filteredBikeModels(bike)"
+                                                :id="`bike-${bike.id}-model-option-${optionIndex}`"
+                                                :key="model"
+                                                type="button"
+                                                role="option"
+                                                :aria-selected="bike.modelSelection === model"
+                                                :class="['bike-combobox-option', { active: bike.activeModelOptionIndex === optionIndex, selected: bike.modelSelection === model }]"
+                                                @mousedown.prevent
+                                                @click="selectBikeModel(bike, model)"
+                                            >
+                                                <span>{{ model }}</span><span v-if="bike.modelSelection === model" aria-hidden="true">✓</span>
+                                            </button>
+                                            <p v-if="!filteredBikeModels(bike).length" class="bike-combobox-empty">No matching models found.</p>
+                                            <button
+                                                :id="`bike-${bike.id}-model-option-${filteredBikeModels(bike).length}`"
+                                                type="button"
+                                                role="option"
+                                                aria-selected="false"
+                                                :class="['bike-combobox-option', 'bike-combobox-custom-option', { active: bike.activeModelOptionIndex === filteredBikeModels(bike).length }]"
+                                                @mousedown.prevent
+                                                @click="useCustomBikeModel(bike)"
+                                            >My bike’s model isn’t listed</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="form-row bike-services-row">
                                 <div class="form-group full-width">
                                     <label :for="`bike-${bike.id}-services`">Services Requested <span class="required">*</span></label>
+                                    <p class="service-picker-guidance">Search and select every service requested for this bike.</p>
+                                    <div class="service-picker" @focusout="onBikeComboboxFocusOut(bike, 'serviceMenuOpen', $event)">
+                                        <div class="service-picker-input-shell">
+                                            <span class="service-search-icon" aria-hidden="true"></span>
+                                            <input
+                                                :id="`bike-${bike.id}-services`"
+                                                type="text"
+                                                v-model="bike.serviceSearch"
+                                                placeholder="Search services — brakes, tires, motor…"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                :aria-expanded="Boolean(bike.serviceMenuOpen)"
+                                                :aria-controls="`bike-${bike.id}-service-listbox`"
+                                                :aria-activedescendant="bike.activeServiceOptionIndex >= 0 ? `bike-${bike.id}-service-option-${bike.activeServiceOptionIndex}` : null"
+                                                @focus="openBikeServiceMenu(bike)"
+                                                @input="onBikeServiceSearchInput(bike)"
+                                                @keydown.down.prevent="moveBikeServiceActive(bike, 1)"
+                                                @keydown.up.prevent="moveBikeServiceActive(bike, -1)"
+                                                @keydown.enter.prevent="chooseActiveBikeService(bike)"
+                                                @keydown.esc="bike.serviceMenuOpen = false"
+                                            >
+                                            <span class="combobox-chevron" aria-hidden="true"></span>
+                                        </div>
+
+                                        <div
+                                            v-if="bike.serviceMenuOpen"
+                                            :id="`bike-${bike.id}-service-listbox`"
+                                            class="service-picker-menu"
+                                            role="listbox"
+                                            aria-multiselectable="true"
+                                        >
+                                            <div class="service-picker-results">
+                                                <button
+                                                    v-for="(service, optionIndex) in filteredBikeServices(bike)"
+                                                    :id="`bike-${bike.id}-service-option-${optionIndex}`"
+                                                    :key="service.key"
+                                                    type="button"
+                                                    role="option"
+                                                    :disabled="!isBikeServiceSelectable(bike, service)"
+                                                    :aria-disabled="!isBikeServiceSelectable(bike, service)"
+                                                    :aria-selected="isBikeServiceSelected(bike, service.key)"
+                                                    :class="['service-picker-option', { active: bike.activeServiceOptionIndex === optionIndex, selected: isBikeServiceSelected(bike, service.key), unavailable: !isBikeServiceSelectable(bike, service) }]"
+                                                    @mousedown.prevent
+                                                    @click="toggleBikeService(bike, service.key)"
+                                                >
+                                                    <span class="service-option-indicator" aria-hidden="true">{{ !isBikeServiceSelectable(bike, service) ? '—' : (isBikeServiceSelected(bike, service.key) ? '✓' : '+') }}</span>
+                                                    <span class="service-option-copy">
+                                                        <strong>{{ service.name }}</strong>
+                                                        <small>{{ service.category }}</small>
+                                                        <small v-if="bikeServiceRestrictionMessage(bike, service)" class="service-option-restriction">{{ bikeServiceRestrictionMessage(bike, service) }}</small>
+                                                        <small v-else-if="service.examples" class="service-option-examples">{{ service.examples }}</small>
+                                                    </span>
+                                                </button>
+                                                <p v-if="!filteredBikeServices(bike).length" class="service-picker-empty">No matching service. Try a broader search or select “Other Service / Not Sure.”</p>
+                                            </div>
+                                            <div class="service-picker-footer">
+                                                <span>{{ selectedBikeServices(bike).length }} selected</span>
+                                                <button type="button" @mousedown.prevent @click="bike.serviceMenuOpen = false">Done</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="selectedBikeServices(bike).length" class="selected-service-list" aria-label="Selected services">
+                                        <span v-for="service in selectedBikeServices(bike)" :key="service.key" class="selected-service-chip">
+                                            {{ service.name }}
+                                            <button type="button" :aria-label="`Remove ${service.name}`" @click="removeBikeService(bike, service.key)">×</button>
+                                        </span>
+                                    </div>
+
+                                    <label :for="`bike-${bike.id}-service-notes`" class="service-notes-label">Additional Details <span class="optional-label">Optional</span></label>
                                     <textarea
-                                        :id="`bike-${bike.id}-services`"
-                                        v-model="bike.requestedService"
-                                        placeholder="Describe the service needed or problem with this bike."
+                                        :id="`bike-${bike.id}-service-notes`"
+                                        v-model="bike.serviceNotes"
+                                        class="service-notes-input"
+                                        placeholder="Describe symptoms, damaged parts, or anything our service team should know."
+                                        @input="syncBikeRequestedService(bike)"
                                     ></textarea>
                                 </div>
                             </div>
 
                             <div class="form-row warranty-row bike-warranty-row">
                                 <div class="form-group full-width">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" v-model="bike.warrantyRequest" @change="onBikeWarrantyChange(bike)">
-                                        <span>
-                                            Request a warranty eligibility review for this bike<br>
-                                            <span class="checkbox-hint">This does not confirm coverage. Normal service and diagnostic charges apply unless coverage is approved.</span>
-                                        </span>
-                                    </label>
-
-                                    <div v-if="bike.warrantyRequest" class="warranty-followup">
+                                    <div class="bike-warranty-purchase-card">
                                         <fieldset>
                                             <legend>Was this bike purchased from Charged Cycle Works? <span class="required">*</span></legend>
                                             <div class="choice-row">
-                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="ccw"> Yes</label>
-                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="other"> No</label>
-                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="unsure"> Unsure</label>
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="ccw" @change="onBikeWarrantySourceChange(bike)"> Yes</label>
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="other" @change="onBikeWarrantySourceChange(bike)"> No</label>
+                                                <label><input type="radio" v-model="bike.warrantyPurchaseSource" value="unsure" @change="onBikeWarrantySourceChange(bike)"> Unsure</label>
                                             </div>
                                         </fieldset>
-                                        <div class="form-group warranty-date-field">
-                                            <label :for="`bike-${bike.id}-purchase-date`">Approximate Purchase Month <span class="optional-label">Optional</span></label>
-                                            <input :id="`bike-${bike.id}-purchase-date`" type="month" v-model="bike.warrantyPurchaseDate">
-                                        </div>
-                                        <p class="verification-note">Reception must verify eligibility before any warranty coverage or waived charges are approved.</p>
+                                    </div>
+
+                                    <div v-if="bike.warrantyPurchaseSource === 'ccw'" class="warranty-followup">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" v-model="bike.warrantyRequest" @change="onBikeWarrantyChange(bike)">
+                                            <span>
+                                                Request a warranty eligibility review for this bike<br>
+                                                <span class="checkbox-hint">This does not confirm coverage. Normal service and diagnostic charges apply unless coverage is approved.</span>
+                                            </span>
+                                        </label>
+                                        <template v-if="bike.warrantyRequest">
+                                            <div class="form-group warranty-date-field">
+                                                <label :for="`bike-${bike.id}-purchase-date`">Approximate Purchase Month <span class="optional-label">Optional</span></label>
+                                                <input :id="`bike-${bike.id}-purchase-date`" type="month" v-model="bike.warrantyPurchaseDate">
+                                            </div>
+                                            <p class="verification-note">Reception must verify eligibility before any warranty coverage or waived charges are approved.</p>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -297,11 +545,11 @@
                                     <div class="safety-answer-row">
                                         <label>
                                             <input type="radio" v-model="bike.safetyHistory" value="none" @change="onBikeSafetyHistoryChange(bike)">
-                                            No — none of these have occurred
+                                            No
                                         </label>
                                         <label>
                                             <input type="radio" v-model="bike.safetyHistory" value="reported" @change="onBikeSafetyHistoryChange(bike)">
-                                            Yes — show the applicable conditions
+                                            Yes
                                         </label>
                                     </div>
                                 </fieldset>
@@ -341,6 +589,7 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
                         </div>
 
                         <button
@@ -367,25 +616,148 @@
                                 <h3>Bike Details</h3>
                                 <span class="single-bike-badge">One bike only</span>
                             </div>
+                            <p class="bike-selector-guidance">Start typing to search, or tap a field to browse the complete list.</p>
                             <div class="form-row bike-make-model-row">
                                 <div class="form-group">
-                                    <label for="express-bike-make">Make <span class="required">*</span></label>
-                                    <input id="express-bike-make" type="text" v-model="formData.bikes[0].make" placeholder="e.g., E Ride Pro" autocomplete="off">
+                                    <label :for="`bike-${expressBike.id}-make`">Make <span class="required">*</span></label>
+                                    <div class="bike-combobox" @focusout="onBikeComboboxFocusOut(expressBike, 'makeMenuOpen', $event)">
+                                        <div :class="['bike-combobox-input-shell', { 'manual-entry': expressBike.makeSelection === '__other__' }]">
+                                            <input
+                                                :id="`bike-${expressBike.id}-make`"
+                                                type="text"
+                                                v-model="expressBike.make"
+                                                :placeholder="expressBike.makeSelection === '__other__' ? 'Type bike make' : 'Search or select a make'"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                :aria-expanded="Boolean(expressBike.makeMenuOpen)"
+                                                :aria-controls="`bike-${expressBike.id}-make-listbox`"
+                                                :aria-activedescendant="expressBike.activeMakeOptionIndex >= 0 ? `bike-${expressBike.id}-make-option-${expressBike.activeMakeOptionIndex}` : null"
+                                                @focus="openBikeMakeMenu(expressBike)"
+                                                @input="onBikeMakeInput(expressBike)"
+                                                @keydown.down.prevent="moveBikeMakeActive(expressBike, 1)"
+                                                @keydown.up.prevent="moveBikeMakeActive(expressBike, -1)"
+                                                @keydown.enter.prevent="chooseActiveBikeMake(expressBike)"
+                                                @keydown.esc="expressBike.makeMenuOpen = false"
+                                            >
+                                            <button
+                                                v-if="expressBike.makeSelection === '__other__'"
+                                                type="button"
+                                                class="combobox-mode-button"
+                                                @mousedown.prevent
+                                                @click="returnToBikeMakeList(expressBike)"
+                                            >Browse list</button>
+                                            <span v-else class="combobox-chevron" aria-hidden="true"></span>
+                                        </div>
+                                        <div
+                                            v-if="expressBike.makeMenuOpen && expressBike.makeSelection !== '__other__'"
+                                            :id="`bike-${expressBike.id}-make-listbox`"
+                                            class="bike-combobox-menu"
+                                            role="listbox"
+                                        >
+                                            <button
+                                                v-for="(make, optionIndex) in filteredBikeMakes(expressBike)"
+                                                :id="`bike-${expressBike.id}-make-option-${optionIndex}`"
+                                                :key="make"
+                                                type="button"
+                                                role="option"
+                                                :aria-selected="expressBike.makeSelection === make"
+                                                :class="['bike-combobox-option', { active: expressBike.activeMakeOptionIndex === optionIndex, selected: expressBike.makeSelection === make }]"
+                                                @mousedown.prevent
+                                                @click="selectBikeMake(expressBike, make)"
+                                            >
+                                                <span>{{ make }}</span><span v-if="expressBike.makeSelection === make" aria-hidden="true">✓</span>
+                                            </button>
+                                            <p v-if="!filteredBikeMakes(expressBike).length" class="bike-combobox-empty">No matching makes found.</p>
+                                            <button
+                                                :id="`bike-${expressBike.id}-make-option-${filteredBikeMakes(expressBike).length}`"
+                                                type="button"
+                                                role="option"
+                                                aria-selected="false"
+                                                :class="['bike-combobox-option', 'bike-combobox-custom-option', { active: expressBike.activeMakeOptionIndex === filteredBikeMakes(expressBike).length }]"
+                                                @mousedown.prevent
+                                                @click="useCustomBikeMake(expressBike)"
+                                            >My bike’s make isn’t listed</button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="express-bike-model">Model <span class="required">*</span></label>
-                                    <input id="express-bike-model" type="text" v-model="formData.bikes[0].model" placeholder="e.g., SS 4.0" autocomplete="off">
+                                    <label :for="`bike-${expressBike.id}-model`">Model <span class="required">*</span></label>
+                                    <div class="bike-combobox" @focusout="onBikeComboboxFocusOut(expressBike, 'modelMenuOpen', $event)">
+                                        <div :class="['bike-combobox-input-shell', { 'manual-entry': expressBike.modelSelection === '__other__' }]">
+                                            <input
+                                                :id="`bike-${expressBike.id}-model`"
+                                                type="text"
+                                                v-model="expressBike.model"
+                                                :disabled="!expressBike.makeSelection"
+                                                :placeholder="bikeModelPlaceholder(expressBike)"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                :aria-expanded="Boolean(expressBike.modelMenuOpen)"
+                                                :aria-controls="`bike-${expressBike.id}-model-listbox`"
+                                                :aria-activedescendant="expressBike.activeModelOptionIndex >= 0 ? `bike-${expressBike.id}-model-option-${expressBike.activeModelOptionIndex}` : null"
+                                                @focus="openBikeModelMenu(expressBike)"
+                                                @input="onBikeModelInput(expressBike)"
+                                                @keydown.down.prevent="moveBikeModelActive(expressBike, 1)"
+                                                @keydown.up.prevent="moveBikeModelActive(expressBike, -1)"
+                                                @keydown.enter.prevent="chooseActiveBikeModel(expressBike)"
+                                                @keydown.esc="expressBike.modelMenuOpen = false"
+                                            >
+                                            <button
+                                                v-if="expressBike.modelSelection === '__other__' && getBikeModels(expressBike).length"
+                                                type="button"
+                                                class="combobox-mode-button"
+                                                @mousedown.prevent
+                                                @click="returnToBikeModelList(expressBike)"
+                                            >Browse list</button>
+                                            <span v-else-if="getBikeModels(expressBike).length" class="combobox-chevron" aria-hidden="true"></span>
+                                        </div>
+                                        <div
+                                            v-if="expressBike.modelMenuOpen && expressBike.modelSelection !== '__other__' && getBikeModels(expressBike).length"
+                                            :id="`bike-${expressBike.id}-model-listbox`"
+                                            class="bike-combobox-menu"
+                                            role="listbox"
+                                        >
+                                            <button
+                                                v-for="(model, optionIndex) in filteredBikeModels(expressBike)"
+                                                :id="`bike-${expressBike.id}-model-option-${optionIndex}`"
+                                                :key="model"
+                                                type="button"
+                                                role="option"
+                                                :aria-selected="expressBike.modelSelection === model"
+                                                :class="['bike-combobox-option', { active: expressBike.activeModelOptionIndex === optionIndex, selected: expressBike.modelSelection === model }]"
+                                                @mousedown.prevent
+                                                @click="selectBikeModel(expressBike, model)"
+                                            >
+                                                <span>{{ model }}</span><span v-if="expressBike.modelSelection === model" aria-hidden="true">✓</span>
+                                            </button>
+                                            <p v-if="!filteredBikeModels(expressBike).length" class="bike-combobox-empty">No matching models found.</p>
+                                            <button
+                                                :id="`bike-${expressBike.id}-model-option-${filteredBikeModels(expressBike).length}`"
+                                                type="button"
+                                                role="option"
+                                                aria-selected="false"
+                                                :class="['bike-combobox-option', 'bike-combobox-custom-option', { active: expressBike.activeModelOptionIndex === filteredBikeModels(expressBike).length }]"
+                                                @mousedown.prevent
+                                                @click="useCustomBikeModel(expressBike)"
+                                            >My bike’s model isn’t listed</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="express-progress-card" :class="{ full: expressHasNoFittingServices }">
+                        <div class="express-progress-card express-progress-sticky" :class="{ full: expressHasNoFittingServices }">
                             <div class="express-progress-header">
                                 <div>
                                     <span class="progress-eyebrow">Express labor selected</span>
                                     <strong>{{ expressSelectedMinutes }} of {{ expressMinuteLimit }} minutes</strong>
                                 </div>
-                                <span class="progress-remaining">{{ expressRemainingMinutes }} min remaining</span>
+                                <div class="progress-meta">
+                                    <span class="progress-remaining">{{ expressSelectedCount }} selected · {{ expressRemainingMinutes }} min remaining</span>
+                                    <button v-if="expressSelectedCount" type="button" class="clear-express-btn" @click="clearExpressServices">Clear</button>
+                                </div>
                             </div>
                             <div
                                 class="express-progress-track"
@@ -459,7 +831,7 @@
                             </section>
                         </div>
 
-                        <div v-if="expressHasNoFittingServices" class="express-convert-card">
+                        <div v-if="expressSelectedCount" class="express-convert-card">
                             <div>
                                 <strong>Need additional service?</strong>
                                 <p>Move to the full Bike Service form. Your contact information, bike details, and selected services will be carried over.</p>
@@ -508,8 +880,39 @@
                         </div>
                     </div>
                 </div>
+                <div v-if="formType === 'standard'" class="workflow-actions">
+                    <button type="button" class="workflow-secondary" @click="goToStandardStep(1)"><span aria-hidden="true">←</span> Back</button>
+                    <button type="button" class="workflow-primary" @click="goToStandardStep(3)">Review & Sign <span aria-hidden="true">→</span></button>
+                </div>
+                </section>
 
                 <!-- Disclosures and Authorization -->
+                <section v-show="formType !== 'standard' || standardStep === 3" class="workflow-step-panel">
+                <div v-if="formType === 'standard'" class="review-summary-card">
+                    <div class="review-summary-header">
+                        <div>
+                            <span class="review-eyebrow">Final review</span>
+                            <h2>Confirm your service request</h2>
+                        </div>
+                        <button type="button" class="review-edit-btn" @click="goToStandardStep(1)">Edit customer</button>
+                    </div>
+                    <div class="review-customer">
+                        <strong>{{ formData.firstName }} {{ formData.lastName }}</strong>
+                        <span>{{ formData.phone }} · {{ formData.email }}</span>
+                        <span>{{ formData.address1 }}<template v-if="formData.address2">, {{ formData.address2 }}</template> · {{ formData.city }}, {{ formData.state }} {{ formData.zip }}</span>
+                    </div>
+                    <div class="review-bike-list">
+                        <article v-for="(bike, index) in formData.bikes" :key="bike.id">
+                            <div>
+                                <strong>{{ formData.bikes.length === 1 ? 'Bike' : `Bike ${index + 1}` }} — {{ bike.make }} {{ bike.model }}</strong>
+                                <p>{{ bike.requestedService }}</p>
+                                <small>Safety: {{ safetyHistoryText(bike) }}</small>
+                                <small>{{ bike.warrantyRequest ? 'Warranty review requested' : 'No warranty review' }} · {{ bike.rushLaborRequested ? 'Rush labor requested' : 'Standard priority' }}</small>
+                            </div>
+                            <button type="button" class="review-edit-btn" @click="expandedBikeId = bike.id; goToStandardStep(2)">Edit</button>
+                        </article>
+                    </div>
+                </div>
                 <template v-if="formType === 'express'">
                     <h2>Express Visit Authorization</h2>
                     <div class="terms-section express-authorization">
@@ -617,10 +1020,6 @@
 
                         <template v-if="formType === 'standard'">
                             <p class="safety-section-summary">Safety history is recorded separately for each bike in the Bikes & Services section above.</p>
-                            <label class="fee-checkbox-label safety-section-ack">
-                                <input type="checkbox" v-model="formData.disclosures.sectionAAck">
-                                <span>I confirm that I answered the safety-history question accurately for every bike in this submission. <span class="required">*</span></span>
-                            </label>
                         </template>
 
                         <template v-else>
@@ -629,11 +1028,11 @@
                                 <div class="safety-answer-row">
                                     <label>
                                         <input type="radio" v-model="formData.disclosures.safetyHistory" value="none" @change="onBatterySafetyHistoryChange">
-                                        No — none of these have occurred
+                                        No
                                     </label>
                                     <label>
                                         <input type="radio" v-model="formData.disclosures.safetyHistory" value="reported" @change="onBatterySafetyHistoryChange">
-                                        Yes — show the applicable conditions
+                                        Yes
                                     </label>
                                 </div>
                             </fieldset>
@@ -665,11 +1064,6 @@
                             <p class="terms-text">No work beyond authorized estimates or quotes will proceed without documented approval (signature, email, or text/SMS from the number on file). Storage after 7 days: $20/day.</p>
                             <p class="terms-text">Shop is not responsible for personal items or loose accessories left with the bike. All terms and minimum fees acknowledged above apply in full.</p>
                             
-                            <!-- Section B Checkbox Confirmation -->
-                            <label class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
-                                <input type="checkbox" v-model="formData.disclosures.sectionBAck">
-                                <span>I authorize operational testing and agree to the $99 minimum and $159/hr labor rate. <span style="color: #e74c3c;">*</span></span>
-                            </label>
                         </template>
 
                         <!-- Battery Diagnostics Wording (Streamlined & Professionally Focused) -->
@@ -690,11 +1084,6 @@
                             <p class="terms-text">If the customer fails to leave the means to test-ride the bike, Charged Cycle Works is not liable for any issues, noises, or safety concerns that could only have been identified through a functional test ride.</p>
                             <p class="terms-text">Any subsequent return visits to address issues that would have been identified during a test ride will be treated as a new service request and billed at the standard $159/hr rate.</p>
                             
-                            <!-- Section C Checkbox Confirmation -->
-                            <label class="fee-checkbox-label" style="margin-top: 15px; background: #f0f0f0; padding: 12px 16px; border-left: 4px solid #2b2b2b;">
-                                <input type="checkbox" v-model="formData.disclosures.sectionCAck">
-                                <span>I agree to leave keys/batteries required for testing or waive liability for issues missed without a test ride. <span style="color: #e74c3c;">*</span></span>
-                            </label>
                         </template>
 
                         <!-- Battery Diagnostics Wording (Battery Specific) -->
@@ -705,8 +1094,25 @@
                         </template>
                     </div>
 
-                    <!-- Interactive Accordion for Terms and Conditions (Applies to BOTH forms) -->
-                    <details class="terms-accordion">
+                    <label v-if="formType === 'standard'" class="fee-checkbox-label consolidated-authorization">
+                        <input type="checkbox" v-model="formData.disclosures.serviceAuthorizationAcknowledged" @change="syncStandardAuthorizations">
+                        <span>I confirm the safety history provided for each bike, authorize reasonable operational testing, accept the stated service minimum and labor rate, and understand that missing access may limit what the shop can verify. <span class="required">*</span></span>
+                    </label>
+
+                    <div v-if="formType === 'standard'" class="disclosure-box key-terms-callout">
+                        <h4>KEY SERVICE TERMS AT A GLANCE</h4>
+                        <ul>
+                            <li><strong>Minimum and rate:</strong> $99 service minimum; additional authorized labor is $159/hour unless quoted otherwise.</li>
+                            <li><strong>Additional work:</strong> Charges beyond the authorized amount require documented customer approval.</li>
+                            <li><strong>Workmanship:</strong> Limited 30-day warranty on the specific labor performed, subject to the full terms.</li>
+                            <li><strong>Storage:</strong> Seven calendar days are free after completion notice, then $20 per calendar day.</li>
+                            <li><strong>Testing:</strong> Reasonable powered testing and limited test riding are authorized when safe and necessary.</li>
+                            <li><strong>Modified bikes:</strong> Performance modifications can affect handling, reliability, legal classification, and OEM warranty coverage.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Full terms may remain compact, but the customer must open them before acknowledgment. -->
+                    <details class="terms-accordion" @toggle="formData.disclosures.fullTermsOpened = formData.disclosures.fullTermsOpened || $event.target.open">
                         <summary class="terms-accordion-header">
                             <span class="accordion-title">View Full Terms and Conditions (13 Articles)</span>
                             <span class="accordion-hint">Click to expand &#9660;</span>
@@ -778,6 +1184,16 @@
                         </div>
                     </details>
 
+                    <label v-if="formType === 'standard'" :class="['fee-checkbox-label', 'full-terms-acknowledgment', { disabled: !formData.disclosures.fullTermsOpened }]">
+                        <input
+                            type="checkbox"
+                            v-model="formData.disclosures.fullTermsAcknowledged"
+                            :disabled="!formData.disclosures.fullTermsOpened"
+                        >
+                        <span v-if="formData.disclosures.fullTermsOpened">I opened and had an opportunity to review all 13 Terms and Conditions, including the warranty, storage, aftermarket-parts, modification, and limitation-of-damages provisions. <span class="required">*</span></span>
+                        <span v-else>Open the full Terms and Conditions above before acknowledging them. <span class="required">*</span></span>
+                    </label>
+
                     </div>
                 </template>
 
@@ -799,13 +1215,14 @@
 
                     <!-- Automated Read-Only Date & Legal Disclaimer -->
                     <div class="signature-disclaimer">
-                        &#128274; IP Address and exact digital timestamp are automatically recorded upon form submission.
+                        &#128274; Your signature, submission time, and agreement version will be securely recorded.
                     </div>
 
                     <div class="signature-date-row">
                         <div class="form-group">
-                            <label>Printed Name <span class="required">*</span></label>
+                            <label for="signature-printed-name">Printed Name <span class="required">*</span></label>
                             <input
+                                id="signature-printed-name"
                                 type="text"
                                 v-model="formData.printedName"
                             >
@@ -817,10 +1234,14 @@
                     </div>
                 </div>
 
-                <button type="submit" class="submit-btn" :disabled="isSubmitting">
-                    <span v-if="!isSubmitting">{{ submitFormLabel }}</span>
-                    <span v-else><span class="loading"></span> Submitting...</span>
-                </button>
+                <div class="submit-action-bar">
+                    <button v-if="formType === 'standard'" type="button" class="workflow-secondary" @click="goToStandardStep(2)"><span aria-hidden="true">←</span> Back</button>
+                    <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                        <span v-if="!isSubmitting">{{ submitFormLabel }}</span>
+                        <span v-else><span class="loading"></span> Submitting...</span>
+                    </button>
+                </div>
+                </section>
 
             </form>
         </div>
