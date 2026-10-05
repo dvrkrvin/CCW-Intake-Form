@@ -11,7 +11,7 @@ createApp({
             bikeCatalog: {
                 '79Bike': ['Falcon Series'],
                 'Altis': ['Sigma'],
-                'Arctic Leopard': ['EX 700', 'EX 800', 'EXE 800', 'EXE 880', 'XE Pro', 'XE Pro R', 'XE Pro S', 'XF Pro'],
+                'Arctic Leopard': ['EX 700', 'EX 800', 'EXE 800', 'EXE 880', 'XE Pro R', 'XE Pro S', 'XF Pro'],
                 'Bakcou': ['Puma X22 SD'],
                 'Bonnell': ['775 AM', '775 AM Touring', '775 MX', '805', '902'],
                 'E Ride Pro': ['Mini', 'S', 'SR', 'SS 2.0', 'SS 3.0', 'SS 4.0'],
@@ -122,6 +122,15 @@ createApp({
             stepErrorMessage: '',
             mountainTimeTick: Date.now(),
             timeCheckInterval: null,
+            inactivityTimeoutMs: 5 * 60 * 1000,
+            inactivityWarningDurationMs: 30 * 1000,
+            inactivityWarningTimer: null,
+            inactivityResetTimer: null,
+            inactivityCountdownTimer: null,
+            inactivityWarningDeadline: 0,
+            inactivityWarningVisible: false,
+            inactivitySecondsRemaining: 30,
+            inactivityResetNotice: '',
             expressServices: [
                 { id: 'emoto_off_bike_tire', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tire Replacement', minutes: 15, allowsQuantity: true },
                 { id: 'emoto_off_bike_tube', category: 'Tires & Tubes — E-Moto', name: 'Off-Bike Tube Replacement', minutes: 15, allowsQuantity: true },
@@ -174,6 +183,10 @@ createApp({
                         serviceNotes: '',
                         make: '',
                         model: '',
+                        year: '',
+                        dropoffType: 'complete_bike',
+                        batteryIssueDescription: '',
+                        batteryOrderNumber: '',
                         requestedService: '',
                         warrantyRequest: false,
                         warrantyPurchaseSource: '',
@@ -183,6 +196,8 @@ createApp({
                         safetyThermal: false,
                         safetyImpact: false,
                         safetyMultipleConfirmed: false,
+                        requiredPartsStatus: '',
+                        limitedInspectionWaiverAccepted: false,
                         rushLaborRequested: false,
                         requestedReturnDate: ''
                     }
@@ -217,6 +232,8 @@ createApp({
             stateSelection: '',
             activeStateOptionIndex: -1,
             showSuccessModal: false,
+            showAddressLine2: false,
+            showStandardTermsModal: false,
             allStates: [
                 {abbr:'AL',name:'Alabama'},{abbr:'AK',name:'Alaska'},{abbr:'AZ',name:'Arizona'},
                 {abbr:'AR',name:'Arkansas'},{abbr:'CA',name:'California'},{abbr:'CO',name:'Colorado'},
@@ -326,24 +343,218 @@ createApp({
 
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside);
+        ['pointerdown', 'keydown', 'input', 'wheel'].forEach(eventName => {
+            document.removeEventListener(eventName, this.handleUserActivity, true);
+        });
+        document.removeEventListener('input', this.clearInteractedValidationError, true);
+        document.removeEventListener('change', this.clearInteractedValidationError, true);
+        this.clearInactivityTimers();
         if (this.timeCheckInterval) clearInterval(this.timeCheckInterval);
     },
 
     mounted() {
         this.initSignaturePad();
         document.addEventListener('click', this.handleClickOutside);
+        ['pointerdown', 'keydown', 'input', 'wheel'].forEach(eventName => {
+            document.addEventListener(eventName, this.handleUserActivity, true);
+        });
+        document.addEventListener('input', this.clearInteractedValidationError, true);
+        document.addEventListener('change', this.clearInteractedValidationError, true);
         this.timeCheckInterval = setInterval(() => {
             this.mountainTimeTick = Date.now();
         }, 60000);
     },
 
     methods: {
+        clearInactivityTimers() {
+            if (this.inactivityWarningTimer) clearTimeout(this.inactivityWarningTimer);
+            if (this.inactivityResetTimer) clearTimeout(this.inactivityResetTimer);
+            if (this.inactivityCountdownTimer) clearInterval(this.inactivityCountdownTimer);
+            this.inactivityWarningTimer = null;
+            this.inactivityResetTimer = null;
+            this.inactivityCountdownTimer = null;
+        },
+
+        startInactivityTimers() {
+            this.clearInactivityTimers();
+            if (!this.hasInProgressIntake()) return;
+            const warningDelay = Math.max(0, this.inactivityTimeoutMs - this.inactivityWarningDurationMs);
+            this.inactivityWarningTimer = setTimeout(() => this.showInactivityWarning(), warningDelay);
+            this.inactivityResetTimer = setTimeout(() => this.resetForInactivity(), this.inactivityTimeoutMs);
+        },
+
+        showInactivityWarning() {
+            if (!this.hasInProgressIntake()) {
+                this.clearInactivityTimers();
+                this.inactivityWarningVisible = false;
+                return;
+            }
+            this.inactivityWarningVisible = true;
+            this.inactivityWarningDeadline = Date.now() + this.inactivityWarningDurationMs;
+            this.updateInactivityCountdown();
+            if (this.inactivityCountdownTimer) clearInterval(this.inactivityCountdownTimer);
+            this.inactivityCountdownTimer = setInterval(() => this.updateInactivityCountdown(), 1000);
+        },
+
+        updateInactivityCountdown() {
+            this.inactivitySecondsRemaining = Math.max(
+                0,
+                Math.ceil((this.inactivityWarningDeadline - Date.now()) / 1000)
+            );
+        },
+
+        hasInProgressIntake() {
+            const f = this.formData;
+            const hasText = values => values.some(value => String(value || '').trim());
+            const customerStarted = hasText([
+                f.firstName, f.lastName, f.phone, f.email, f.address1, f.address2,
+                f.city, f.state, f.zip, f.requestedService, f.printedName, this.stateQuery
+            ]) || f.smsConsent;
+            const bikeStarted = f.bikes.length > 1 || f.bikes.some(bike => (
+                hasText([
+                    bike.make, bike.model, bike.year, bike.serviceSearch, bike.serviceNotes,
+                    bike.batteryIssueDescription, bike.batteryOrderNumber, bike.requestedService,
+                    bike.warrantyPurchaseSource, bike.warrantyPurchaseDate, bike.safetyHistory,
+                    bike.requiredPartsStatus, bike.requestedReturnDate
+                ])
+                || bike.dropoffType !== 'complete_bike'
+                || Boolean(bike.selectedServiceKeys?.length)
+                || bike.warrantyRequest
+                || bike.safetySubmerged
+                || bike.safetyThermal
+                || bike.safetyImpact
+                || bike.limitedInspectionWaiverAccepted
+                || bike.rushLaborRequested
+            ));
+            const expressStarted = Boolean(f.expressSelectedServiceIds.length)
+                || Object.values(f.expressServiceQuantities).some(quantity => Number(quantity) > 0);
+            const disclosureStarted = Object.entries(f.disclosures).some(([key, value]) => (
+                key !== 'termsVersion' && Boolean(value)
+            ));
+            const signatureStarted = Boolean(
+                this.signaturePad?.isEmpty && !this.signaturePad.isEmpty()
+            );
+            return customerStarted || bikeStarted || expressStarted || disclosureStarted || signatureStarted;
+        },
+
+        handleUserActivity() {
+            if (this.isSubmitting) return;
+            this.inactivityResetNotice = '';
+            this.inactivityWarningVisible = false;
+            const restartIfNeeded = () => {
+                if (this.hasInProgressIntake()) this.startInactivityTimers();
+                else this.clearInactivityTimers();
+            };
+            if (this.$nextTick) this.$nextTick(restartIfNeeded);
+            else setTimeout(restartIfNeeded, 0);
+        },
+
+        continueInactivitySession() {
+            this.inactivityWarningVisible = false;
+            this.inactivityResetNotice = '';
+            this.startInactivityTimers();
+        },
+
+        resetForInactivity() {
+            if (!this.hasInProgressIntake()) {
+                this.clearInactivityTimers();
+                this.inactivityWarningVisible = false;
+                return;
+            }
+            this.clearInactivityTimers();
+            this.inactivityWarningVisible = false;
+            this.resetForm();
+            this.formType = 'standard';
+            this.standardStep = 1;
+            this.inactivityResetNotice = 'This intake was cleared after five minutes of inactivity to protect customer privacy.';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        requiredField(value, label, targetId, step = null, bikeId = null) {
+            return { value, label, targetId, step, bikeId };
+        },
+
+        clearValidationFeedback() {
+            document.querySelectorAll?.('.inline-validation-message').forEach(node => node.remove?.());
+            document.querySelectorAll?.('.validation-error-host').forEach(node => node.classList?.remove('validation-error-host'));
+            document.querySelectorAll?.('.validation-error-target').forEach(node => {
+                node.classList?.remove('validation-error-target');
+                node.removeAttribute?.('aria-invalid');
+            });
+        },
+
+        clearInteractedValidationError(event) {
+            const host = event?.target?.closest?.('.validation-error-host');
+            if (!host) return;
+            host.querySelectorAll?.('.inline-validation-message').forEach(node => node.remove?.());
+            host.querySelectorAll?.('.validation-error-target, [aria-invalid="true"]').forEach(node => {
+                node.classList?.remove('validation-error-target');
+                node.removeAttribute?.('aria-invalid');
+            });
+            host.classList?.remove('validation-error-host');
+            if (this.errorMessage.startsWith('Please complete:')) this.errorMessage = '';
+            if (this.stepErrorMessage.startsWith('Please complete:')) this.stepErrorMessage = '';
+        },
+
+        showValidationErrors(errors, scope = 'submit') {
+            this.clearValidationFeedback();
+            if (!errors.length) return false;
+
+            const firstError = errors[0];
+            if (this.formType === 'standard' && firstError.step) this.standardStep = firstError.step;
+            if (firstError.bikeId) this.expandedBikeId = firstError.bikeId;
+
+            const summary = `Please complete: ${errors
+                .map(error => error.label.replace(/[.!?]+$/, ''))
+                .join(', ')}.`;
+            if (scope === 'step') {
+                this.stepErrorMessage = summary;
+            } else {
+                this.errorMessage = summary;
+            }
+
+            const applyErrors = () => {
+                errors.forEach(error => {
+                    const target = document.getElementById?.(error.targetId);
+                    if (!target) return;
+                    const host = target.closest?.(
+                        '.form-group, fieldset, .limited-inspection-waiver, .express-service-menu, .express-progress-card, .express-terms-box, .authorization-summary, .signature-canvas-container, .signature-section'
+                    ) || target.parentElement || target;
+                    host.classList?.add('validation-error-host');
+                    target.classList?.add('validation-error-target');
+                    target.setAttribute?.('aria-invalid', 'true');
+
+                    const message = document.createElement?.('p');
+                    if (message) {
+                        message.className = 'inline-validation-message';
+                        message.textContent = error.label;
+                        message.setAttribute('role', 'alert');
+                        host.appendChild(message);
+                    }
+                });
+
+                const target = document.getElementById?.(firstError.targetId);
+                if (!target) return;
+                target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+                const focusTarget = target.matches?.('input, textarea, select, button, [tabindex]')
+                    ? target
+                    : target.querySelector?.('input, textarea, select, button, [tabindex]');
+                focusTarget?.focus?.({ preventScroll: true });
+            };
+
+            if (this.$nextTick) this.$nextTick(applyErrors);
+            else applyErrors();
+            return true;
+        },
+
         switchFormType(type) {
             if (type === 'battery' && !this.batteryServiceEnabled) {
                 this.errorMessage = this.batteryServiceUnavailableMessage;
                 return;
             }
             this.formType = type;
+            this.showStandardTermsModal = false;
+            this.clearValidationFeedback();
             this.errorMessage = '';
             this.stepErrorMessage = '';
             if (type === 'standard' && ![1, 2, 3].includes(this.standardStep)) this.standardStep = 1;
@@ -360,37 +571,33 @@ createApp({
         validateStandardStep(step) {
             if (step === 1) {
                 const required = [
-                    [this.formData.firstName.trim(), 'first name'],
-                    [this.formData.lastName.trim(), 'last name'],
-                    [this.formData.phone.trim(), 'phone number'],
-                    [this.formData.email.trim(), 'email address'],
-                    [this.formData.address1.trim(), 'address'],
-                    [this.formData.city.trim(), 'city'],
-                    [this.formData.state.trim(), 'state'],
-                    [this.formData.zip.trim(), 'ZIP code'],
-                    [this.formData.smsConsent, 'text-message consent']
+                    this.requiredField(this.formData.firstName.trim(), 'Enter a first name.', 'customer-first-name', 1),
+                    this.requiredField(this.formData.lastName.trim(), 'Enter a last name.', 'customer-last-name', 1),
+                    this.requiredField(this.formData.phone.trim(), 'Enter a phone number.', 'customer-phone', 1),
+                    this.requiredField(this.formData.email.trim(), 'Enter an email address.', 'customer-email', 1),
+                    this.requiredField(this.formData.address1.trim(), 'Enter a street address.', 'customer-address-1', 1),
+                    this.requiredField(this.formData.city.trim(), 'Enter a city.', 'customer-city', 1),
+                    this.requiredField(this.formData.state.trim(), 'Select a state from the list.', 'customer-state', 1),
+                    this.requiredField(this.formData.zip.trim(), 'Enter a ZIP code.', 'customer-zip', 1),
+                    this.requiredField(this.formData.smsConsent, 'Confirm text-message consent.', 'customer-sms-consent', 1)
                 ];
-                const missing = required.filter(([value]) => !value).map(([, label]) => label);
-                if (missing.length) {
-                    this.stepErrorMessage = `Please complete: ${missing.join(', ')}.`;
-                    this.revealStepError();
-                    return false;
-                }
+                const missing = required.filter(field => !field.value);
+                if (this.showValidationErrors(missing, 'step')) return false;
             }
 
             if (step === 2) {
                 const missing = [];
                 this.formData.bikes.forEach((bike, index) => {
                     const name = this.formData.bikes.length === 1 ? 'Bike' : `Bike ${index + 1}`;
-                    if (!bike.make.trim()) missing.push(`${name} make`);
-                    if (!bike.model.trim()) missing.push(`${name} model`);
+                    if (!bike.make.trim()) missing.push(this.requiredField('', `Select or enter the ${name.toLowerCase()} make.`, `bike-${bike.id}-make`, 2, bike.id));
+                    if (!bike.model.trim()) missing.push(this.requiredField('', `Select or enter the ${name.toLowerCase()} model.`, `bike-${bike.id}-model`, 2, bike.id));
                     if (
                         bike.make.trim()
                         && bike.makeSelection !== '__other__'
                         && bike.makeSelection !== bike.make
                         && !Object.hasOwn(this.bikeCatalog, bike.make)
                     ) {
-                        missing.push(`${name} make selection (choose a result or “not listed”)`);
+                        missing.push(this.requiredField('', `Choose the ${name.toLowerCase()} make from the list or select “not listed.”`, `bike-${bike.id}-make`, 2, bike.id));
                     }
                     if (
                         bike.model.trim()
@@ -400,21 +607,24 @@ createApp({
                         && bike.modelSelection !== bike.model
                         && !this.getBikeModels(bike).includes(bike.model)
                     ) {
-                        missing.push(`${name} model selection (choose a result or “not listed”)`);
+                        missing.push(this.requiredField('', `Choose the ${name.toLowerCase()} model from the list or select “not listed.”`, `bike-${bike.id}-model`, 2, bike.id));
                     }
-                    if (!bike.requestedService.trim()) missing.push(`${name} services requested`);
-                    if (!bike.warrantyPurchaseSource) missing.push(`${name} purchase answer`);
-                    if (!bike.safetyHistory) missing.push(`${name} safety-history answer`);
-                    if (bike.safetyHistory === 'reported' && !this.bikeSafetySelectionCount(bike)) missing.push(`${name} safety condition`);
-                    if (this.bikeSafetySelectionCount(bike) >= 2 && !bike.safetyMultipleConfirmed) missing.push(`${name} safety confirmation`);
+                    if (bike.dropoffType === 'battery_only') {
+                        if (!bike.batteryIssueDescription.trim()) missing.push(this.requiredField('', `Describe the ${name.toLowerCase()} battery issue.`, `bike-${bike.id}-battery-issue`, 2, bike.id));
+                    } else {
+                        if (!bike.requestedService.trim()) missing.push(this.requiredField('', `Select at least one service for ${name.toLowerCase()}.`, `bike-${bike.id}-services`, 2, bike.id));
+                        if (!bike.requiredPartsStatus) missing.push(this.requiredField('', `Answer whether all functional parts will be provided for ${name.toLowerCase()}.`, `bike-${bike.id}-required-parts`, 2, bike.id));
+                        if (bike.requiredPartsStatus === 'not_provided' && !bike.limitedInspectionWaiverAccepted) {
+                            missing.push(this.requiredField('', `Accept the limited inspection acknowledgment for ${name.toLowerCase()}.`, `bike-${bike.id}-limited-inspection-waiver`, 2, bike.id));
+                        }
+                    }
+                    if (!bike.safetyHistory) missing.push(this.requiredField('', `Answer the safety-history question for ${name.toLowerCase()}.`, `bike-${bike.id}-safety-history`, 2, bike.id));
+                    if (bike.safetyHistory === 'reported' && !this.bikeSafetySelectionCount(bike)) missing.push(this.requiredField('', `Select the applicable safety condition for ${name.toLowerCase()}.`, `bike-${bike.id}-safety-condition`, 2, bike.id));
                 });
-                if (missing.length) {
-                    this.stepErrorMessage = `Please complete: ${missing.join(', ')}.`;
-                    this.revealStepError();
-                    return false;
-                }
+                if (this.showValidationErrors(missing, 'step')) return false;
             }
 
+            this.clearValidationFeedback();
             this.stepErrorMessage = '';
             return true;
         },
@@ -445,12 +655,25 @@ createApp({
         },
 
         bikeSummary(bike) {
-            const identity = [bike.make, bike.model].filter(Boolean).join(' ') || 'Bike details not completed';
-            const service = bike.requestedService.trim() || 'No service description yet';
+            const identity = this.bikeIdentity(bike) || 'Bike details not completed';
+            const service = bike.dropoffType === 'battery_only'
+                ? 'Battery Warranty Evaluation'
+                : (bike.requestedService.trim() || 'No service description yet');
             const flags = [];
-            if (bike.warrantyRequest) flags.push('Warranty review');
+            if (bike.dropoffType === 'battery_only' || bike.warrantyRequest) flags.push('Warranty review');
             if (bike.rushLaborRequested) flags.push('Rush requested');
             return `${identity} · ${service}${flags.length ? ` · ${flags.join(' · ')}` : ''}`;
+        },
+
+        bikeIdentity(bike) {
+            return [bike.year, bike.make, bike.model]
+                .map(value => String(value || '').trim())
+                .filter(Boolean)
+                .join(' ');
+        },
+
+        onBikeYearInput(bike) {
+            bike.year = String(bike.year || '').replace(/\D/g, '').slice(0, 4);
         },
 
         getBikeModels(bike) {
@@ -630,21 +853,52 @@ createApp({
 
         isElectricalDiagnosticApproved(bike) {
             const make = this.normalizeSearchValue(bike.makeSelection || bike.make);
-            const model = this.normalizeSearchValue(bike.modelSelection || bike.model);
-            if (['stark', 'eridepro', 'talaria', 'zero', 'segway'].includes(make)) return true;
-            return make === 'surron' && (model.startsWith('lightbee') || model === 'ultrabee');
+            const model = String(bike.modelSelection || bike.model || '').trim().toLocaleLowerCase();
+            const approvedModels = {
+                stark: this.bikeCatalog.Stark,
+                surron: ['Light Bee', 'Light Bee 2', 'Light Bee S', 'Light Bee X', 'Ultra Bee'],
+                eridepro: this.bikeCatalog['E Ride Pro'],
+                talaria: this.bikeCatalog.Talaria,
+                zero: this.bikeCatalog.Zero,
+                segway: ['X160', 'X260'],
+                bonnell: ['805', '902'],
+                ventus: this.bikeCatalog.Ventus,
+                altis: ['Sigma'],
+                arcticleopard: ['XE Pro R', 'XE Pro S', 'XF Pro']
+            };
+            return (approvedModels[make] || []).some(
+                approvedModel => approvedModel.toLocaleLowerCase() === model
+            );
         },
 
         isBikeServiceSelectable(bike, service) {
             return service.key !== 'diagnostic_electrical' || this.isElectricalDiagnosticApproved(bike);
         },
 
+        isLimitedElectricalDiagnosticBike(bike) {
+            const make = this.normalizeSearchValue(bike.makeSelection || bike.make);
+            const model = String(bike.modelSelection || bike.model || '').trim().toLocaleLowerCase();
+            const limitedSupportModels = {
+                altis: ['Sigma'],
+                ventus: this.bikeCatalog.Ventus,
+                arcticleopard: ['XE Pro R', 'XE Pro S', 'XF Pro']
+            };
+            return (limitedSupportModels[make] || []).some(
+                limitedModel => limitedModel.toLocaleLowerCase() === model
+            );
+        },
+
+        showLimitedElectricalDiagnosticNotice(bike) {
+            return this.isBikeServiceSelected(bike, 'diagnostic_electrical')
+                && this.isLimitedElectricalDiagnosticBike(bike);
+        },
+
         bikeServiceRestrictionMessage(bike, service) {
             if (service.key !== 'diagnostic_electrical' || this.isElectricalDiagnosticApproved(bike)) return '';
             const make = this.normalizeSearchValue(bike.makeSelection || bike.make);
             const model = this.normalizeSearchValue(bike.modelSelection || bike.model);
-            if (!make || (make === 'surron' && !model)) return 'Select the bike make and model to check availability.';
-            return 'Available only for Stark; Surron Light Bee or Ultra Bee; E Ride Pro; Talaria; Zero; and Segway bikes.';
+            if (!make || !model) return 'Select the bike make and model to check availability.';
+            return 'Electrical diagnostics are limited to approved make and model combinations listed in this form.';
         },
 
         reconcileBikeServiceEligibility(bike) {
@@ -715,10 +969,48 @@ createApp({
         },
 
         syncBikeRequestedService(bike) {
+            if (bike.dropoffType === 'battery_only') {
+                const issue = String(bike.batteryIssueDescription || '').trim();
+                bike.requestedService = issue
+                    ? `Battery Warranty Evaluation\nIssue Description: ${issue}`
+                    : 'Battery Warranty Evaluation';
+                return;
+            }
             const lines = this.selectedBikeServices(bike).map(service => `- ${service.name}`);
             const notes = String(bike.serviceNotes || '').trim();
             if (notes) lines.push(`Additional Details: ${notes}`);
             bike.requestedService = lines.join('\n');
+        },
+
+        onBikeDropoffTypeChange(bike) {
+            if (bike.dropoffType === 'battery_only') {
+                bike.warrantyRequest = true;
+                bike.warrantyPurchaseSource = 'ccw';
+                bike.rushLaborRequested = false;
+                bike.requestedReturnDate = '';
+                bike.serviceMenuOpen = false;
+                bike.requiredPartsStatus = '';
+                bike.limitedInspectionWaiverAccepted = false;
+            } else {
+                bike.batteryIssueDescription = '';
+                bike.batteryOrderNumber = '';
+                bike.warrantyRequest = false;
+                bike.warrantyPurchaseSource = '';
+                bike.warrantyPurchaseDate = '';
+            }
+            this.syncBikeRequestedService(bike);
+        },
+
+        setBikeDropoffType(bike, type) {
+            if (bike.dropoffType === type) return;
+            bike.dropoffType = type;
+            this.onBikeDropoffTypeChange(bike);
+        },
+
+        onRequiredPartsStatusChange(bike) {
+            if (bike.requiredPartsStatus !== 'not_provided') {
+                bike.limitedInspectionWaiverAccepted = false;
+            }
         },
 
         onBikeMakeSelectionChange(bike) {
@@ -751,11 +1043,32 @@ createApp({
         },
 
         syncStandardAuthorizations() {
-            const acknowledged = this.formData.disclosures.serviceAuthorizationAcknowledged;
+            const acknowledged = this.formData.disclosures.fullTermsAcknowledged;
+            this.formData.disclosures.diagFeeAcknowledged = acknowledged;
+            this.formData.disclosures.serviceAuthorizationAcknowledged = acknowledged;
             // Preserve the legacy A/B/C fields expected by the existing backend while presenting one clear authorization to the customer.
             this.formData.disclosures.sectionAAck = acknowledged;
             this.formData.disclosures.sectionBAck = acknowledged;
             this.formData.disclosures.sectionCAck = acknowledged;
+        },
+
+        openStandardTermsReview() {
+            this.formData.disclosures.fullTermsOpened = true;
+            this.showStandardTermsModal = true;
+            if (this.$nextTick) {
+                this.$nextTick(() => this.$refs.standardTermsDialog?.focus?.());
+            }
+        },
+
+        closeStandardTermsReview() {
+            this.showStandardTermsModal = false;
+        },
+
+        acceptStandardTerms() {
+            this.formData.disclosures.fullTermsOpened = true;
+            this.formData.disclosures.fullTermsAcknowledged = true;
+            this.syncStandardAuthorizations();
+            this.showStandardTermsModal = false;
         },
 
         addBike() {
@@ -778,6 +1091,10 @@ createApp({
                 serviceNotes: '',
                 make: '',
                 model: '',
+                year: '',
+                dropoffType: 'complete_bike',
+                batteryIssueDescription: '',
+                batteryOrderNumber: '',
                 requestedService: '',
                 warrantyRequest: false,
                 warrantyPurchaseSource: '',
@@ -787,6 +1104,8 @@ createApp({
                 safetyThermal: false,
                 safetyImpact: false,
                 safetyMultipleConfirmed: false,
+                requiredPartsStatus: '',
+                limitedInspectionWaiverAccepted: false,
                 rushLaborRequested: false,
                 requestedReturnDate: ''
             });
@@ -875,12 +1194,27 @@ createApp({
 
         formatBikeRequests() {
             return this.formData.bikes.map((bike, index) => {
+                if (bike.dropoffType === 'battery_only') {
+                    const lines = [
+                        `Bike ${index + 1}: ${this.bikeIdentity(bike)}`,
+                        'Drop-off Type: Battery Only',
+                        'Services Requested: Battery Warranty Evaluation',
+                        `Issue Description: ${bike.batteryIssueDescription.trim()}`,
+                        'Warranty Eligibility Review: Required, Reception Verification Pending',
+                        `Safety History: ${this.safetyHistoryText(bike)}`
+                    ];
+                    if (bike.warrantyPurchaseDate) lines.push(`Approximate Purchase Month: ${bike.warrantyPurchaseDate}`);
+                    if (bike.batteryOrderNumber.trim()) lines.push(`Original Order Number: ${bike.batteryOrderNumber.trim()}`);
+                    return lines.join('\n');
+                }
                 const lines = [
-                    `Bike ${index + 1}: ${bike.make.trim()} ${bike.model.trim()}`,
+                    `Bike ${index + 1}: ${this.bikeIdentity(bike)}`,
                     `Services Requested: ${bike.requestedService.trim()}`,
                     `Purchased from Charged Cycle Works: ${this.warrantyPurchaseSourceLabel(bike.warrantyPurchaseSource)}`,
                     `Warranty Eligibility Review: ${bike.warrantyRequest ? 'Requested — Not Yet Verified' : 'Not Requested'}`,
                     `Safety History: ${this.safetyHistoryText(bike)}`,
+                    `Required Functional Parts: ${bike.requiredPartsStatus === 'provided' ? 'Customer will provide keys, battery, and all required parts' : 'Customer cannot provide all required parts'}`,
+                    `Limited Inspection Waiver: ${bike.requiredPartsStatus === 'not_provided' && bike.limitedInspectionWaiverAccepted ? 'Accepted' : 'Not Applicable'}`,
                     `Rush Labor Request: ${bike.rushLaborRequested ? 'Yes — $238.50/hr (1.5x standard rate)' : 'No'}`
                 ];
                 if (bike.warrantyRequest) {
@@ -945,7 +1279,7 @@ createApp({
                 service => `- ${this.expressServiceSelectionLabel(service)}`
             );
             return [
-                `Bike: ${bike.make.trim()} ${bike.model.trim()}`,
+                `Bike: ${this.bikeIdentity(bike)}`,
                 'Express Services:',
                 ...serviceLines
             ].join('\n');
@@ -1339,7 +1673,7 @@ createApp({
             
             // Pull from the rendered agreement so the retained PDF cannot drift from
             // the exact customer-facing terms when wording is amended later.
-            const allTerms = Array.from(document.querySelectorAll('.terms-accordion .accordion-body h4, .terms-accordion .accordion-body p'))
+            const allTerms = Array.from(document.querySelectorAll('.terms-modal-body h4, .terms-modal-body p'))
                 .map(element => element.textContent.trim())
                 .filter(Boolean);
 
@@ -1370,19 +1704,20 @@ createApp({
 
             const f = this.formData;
             const requiredFields = [
-                [f.firstName.trim(),        'First name'],
-                [f.lastName.trim(),         'Last name'],
-                [f.phone.trim(),            'Phone number'],
-                [f.email.trim(),            'Email address'],
-                [f.printedName.trim(),      'Printed name'],
+                this.requiredField(f.firstName.trim(), 'Enter a first name.', 'customer-first-name', 1),
+                this.requiredField(f.lastName.trim(), 'Enter a last name.', 'customer-last-name', 1),
+                this.requiredField(f.phone.trim(), 'Enter a phone number.', 'customer-phone', 1),
+                this.requiredField(f.email.trim(), 'Enter an email address.', 'customer-email', 1),
+                this.requiredField(f.printedName.trim(), 'Enter the signer’s printed name.', 'signature-printed-name', 3),
+                this.requiredField(f.smsConsent, 'Confirm text-message consent.', 'customer-sms-consent', 1)
             ];
 
             if (this.formType !== 'express') {
                 requiredFields.push(
-                    [f.address1.trim(), 'Street address'],
-                    [f.city.trim(), 'City'],
-                    [f.state.trim(), 'State'],
-                    [f.zip.trim(), 'ZIP code']
+                    this.requiredField(f.address1.trim(), 'Enter a street address.', 'customer-address-1', 1),
+                    this.requiredField(f.city.trim(), 'Enter a city.', 'customer-city', 1),
+                    this.requiredField(f.state.trim(), 'Select a state from the list.', 'customer-state', 1),
+                    this.requiredField(f.zip.trim(), 'Enter a ZIP code.', 'customer-zip', 1)
                 );
             }
 
@@ -1393,104 +1728,99 @@ createApp({
                     return;
                 }
                 f.bikes.forEach((bike, index) => {
+                    const bikeName = f.bikes.length === 1 ? 'bike' : `bike ${index + 1}`;
                     requiredFields.push(
-                        [bike.make.trim(), `Bike ${index + 1} make`],
-                        [bike.model.trim(), `Bike ${index + 1} model`],
-                        [bike.requestedService.trim(), `Bike ${index + 1} services requested`],
-                        [bike.warrantyPurchaseSource, `Bike ${index + 1} Charged Cycle Works purchase`],
-                        [bike.safetyHistory, `Bike ${index + 1} safety history`]
+                        this.requiredField(bike.make.trim(), `Select or enter the ${bikeName} make.`, `bike-${bike.id}-make`, 2, bike.id),
+                        this.requiredField(bike.model.trim(), `Select or enter the ${bikeName} model.`, `bike-${bike.id}-model`, 2, bike.id),
+                        this.requiredField(bike.safetyHistory, `Answer the safety-history question for ${bikeName}.`, `bike-${bike.id}-safety-history`, 2, bike.id)
                     );
+                    if (bike.dropoffType === 'battery_only') {
+                        requiredFields.push(
+                            this.requiredField(bike.batteryIssueDescription.trim(), `Describe the ${bikeName} battery issue.`, `bike-${bike.id}-battery-issue`, 2, bike.id)
+                        );
+                    } else {
+                        requiredFields.push(
+                            this.requiredField(bike.requestedService.trim(), `Select at least one service for ${bikeName}.`, `bike-${bike.id}-services`, 2, bike.id),
+                            this.requiredField(bike.requiredPartsStatus, `Answer whether all functional parts will be provided for ${bikeName}.`, `bike-${bike.id}-required-parts`, 2, bike.id),
+                            this.requiredField(
+                                bike.requiredPartsStatus !== 'not_provided' || bike.limitedInspectionWaiverAccepted ? 'accepted' : '',
+                                `Accept the limited inspection acknowledgment for ${bikeName}.`,
+                                `bike-${bike.id}-limited-inspection-waiver`,
+                                2,
+                                bike.id
+                            )
+                        );
+                    }
                     if (bike.safetyHistory === 'reported') {
                         const safetyCount = this.bikeSafetySelectionCount(bike);
-                        requiredFields.push([
+                        requiredFields.push(this.requiredField(
                             safetyCount ? 'selected' : '',
-                            `Bike ${index + 1} applicable safety condition`
-                        ]);
-                        if (safetyCount >= 2) {
-                            requiredFields.push([
-                                bike.safetyMultipleConfirmed ? 'confirmed' : '',
-                                `Bike ${index + 1} multiple safety-event confirmation`
-                            ]);
-                        }
+                            `Select the applicable safety condition for ${bikeName}.`,
+                            `bike-${bike.id}-safety-condition`,
+                            2,
+                            bike.id
+                        ));
                     }
                 });
             } else if (this.formType === 'express') {
                 const expressBike = f.bikes[0];
                 requiredFields.push(
-                    [expressBike.make.trim(), 'Bike make'],
-                    [expressBike.model.trim(), 'Bike model'],
-                    [this.expressSelectedServices.length ? 'selected' : '', 'At least one express service']
+                    this.requiredField(expressBike.make.trim(), 'Select or enter the bike make.', `bike-${expressBike.id}-make`),
+                    this.requiredField(expressBike.model.trim(), 'Select or enter the bike model.', `bike-${expressBike.id}-model`),
+                    this.requiredField(this.expressSelectedServices.length ? 'selected' : '', 'Select at least one Express service.', 'express-service-menu')
                 );
             } else {
-                requiredFields.push([f.requestedService.trim(), 'Requested service']);
-                requiredFields.push([f.disclosures.safetyHistory, 'Safety history']);
+                requiredFields.push(this.requiredField(f.requestedService.trim(), 'Describe the requested service.', 'battery-requested-service'));
+                requiredFields.push(this.requiredField(f.disclosures.safetyHistory, 'Answer the safety-history question.', 'battery-safety-history'));
                 if (f.disclosures.warrantyRequest) {
-                    requiredFields.push([
+                    requiredFields.push(this.requiredField(
                         f.disclosures.warrantyPurchaseSource,
-                        'Warranty purchase source'
-                    ]);
+                        'Answer the warranty purchase-source question.',
+                        'battery-warranty-source'
+                    ));
                 }
                 if (f.disclosures.safetyHistory === 'reported') {
                     const safetyCount = this.batterySafetySelectionCount();
-                    requiredFields.push([
+                    requiredFields.push(this.requiredField(
                         safetyCount ? 'selected' : '',
-                        'At least one applicable safety condition'
-                    ]);
+                        'Select at least one applicable safety condition.',
+                        'battery-safety-condition'
+                    ));
                     if (safetyCount >= 2) {
-                        requiredFields.push([
+                        requiredFields.push(this.requiredField(
                             f.disclosures.safetyMultipleConfirmed ? 'confirmed' : '',
-                            'Multiple safety-event confirmation'
-                        ]);
+                            'Confirm the selected safety events.',
+                            'battery-safety-confirmation'
+                        ));
                     }
                 }
             }
 
             const missing = requiredFields
-                .filter(([val]) => !val)
-                .map(([, label]) => label);
+                .filter(field => !field.value);
 
-            if (missing.length) {
-                this.errorMessage = `Please complete the following before submitting: ${missing.join(', ')}.`;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                return;
-            }
-
-            // SMS Consent validation
-            if (!f.smsConsent) {
-                this.errorMessage = 'Please check the SMS/Text communication consent box so our team can send you diagnostic updates and quotes.';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                return;
-            }
+            if (this.showValidationErrors(missing)) return;
 
             if (this.formType === 'express') {
                 if (this.expressSelectedMinutes > this.expressMinuteLimit) {
-                    this.errorMessage = `Express Visit services cannot exceed ${this.expressMinuteLimit} minutes.`;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
+                    if (this.showValidationErrors([
+                        this.requiredField('', `Reduce Express services to ${this.expressMinuteLimit} minutes or less.`, 'express-progress')
+                    ])) return;
                 }
                 if (!f.disclosures.expressTermsAcknowledged) {
-                    this.errorMessage = 'Please acknowledge the Express Visit terms before submitting.';
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
+                    if (this.showValidationErrors([
+                        this.requiredField('', 'Accept the Express Visit terms.', 'express-terms-acknowledgment')
+                    ])) return;
                 }
             }
 
             // Standard Service fee and section validation
             if (this.formType === 'standard') {
-                if (!f.disclosures.diagFeeAcknowledged) {
-                    this.errorMessage = 'Please acknowledge the $99 service minimum before submitting.';
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                }
-                if (!f.disclosures.serviceAuthorizationAcknowledged) {
-                    this.errorMessage = 'Please confirm the service and testing authorization before submitting.';
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                }
+                this.syncStandardAuthorizations();
                 if (!f.disclosures.fullTermsOpened || !f.disclosures.fullTermsAcknowledged) {
-                    this.errorMessage = 'Please open and acknowledge the full Terms and Conditions before submitting.';
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
+                    if (this.showValidationErrors([
+                        this.requiredField('', 'Open and accept the full Terms and Conditions.', 'standard-terms-acknowledgment', 3)
+                    ])) return;
                 }
             }
 
@@ -1504,9 +1834,9 @@ createApp({
             }
 
             if (this.signaturePad.isEmpty()) {
-                this.errorMessage = 'Please provide your signature before submitting.';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                return;
+                if (this.showValidationErrors([
+                    this.requiredField('', 'Provide a signature.', 'signature-field', this.formType === 'standard' ? 3 : null)
+                ])) return;
             }
 
             this.isSubmitting = true;
@@ -1521,21 +1851,28 @@ createApp({
                         ? f.bikes.map(bike => ({
                             make: bike.make.trim(),
                             model: bike.model.trim(),
+                            year: String(bike.year || '').trim(),
                             requestedService: bike.requestedService.trim(),
-                            warrantyRequest: bike.warrantyRequest === true,
-                            warrantyPurchaseSource: bike.warrantyPurchaseSource,
-                            warrantyPurchaseDate: bike.warrantyRequest ? bike.warrantyPurchaseDate : '',
+                            dropoffType: bike.dropoffType,
+                            batteryIssueDescription: bike.dropoffType === 'battery_only' ? bike.batteryIssueDescription.trim() : '',
+                            batteryOrderNumber: bike.dropoffType === 'battery_only' ? bike.batteryOrderNumber.trim() : '',
+                            warrantyRequest: bike.dropoffType === 'battery_only' || bike.warrantyRequest === true,
+                            warrantyPurchaseSource: bike.dropoffType === 'battery_only' ? 'ccw' : bike.warrantyPurchaseSource,
+                            warrantyPurchaseDate: bike.dropoffType === 'battery_only' || bike.warrantyRequest ? bike.warrantyPurchaseDate : '',
                             safetyHistory: bike.safetyHistory,
                             safetySubmerged: bike.safetyHistory === 'reported' && bike.safetySubmerged === true,
                             safetyThermal: bike.safetyHistory === 'reported' && bike.safetyThermal === true,
                             safetyImpact: bike.safetyHistory === 'reported' && bike.safetyImpact === true,
-                            rushLaborRequested: bike.rushLaborRequested === true,
-                            requestedReturnDate: bike.rushLaborRequested ? bike.requestedReturnDate : ''
+                            requiredPartsStatus: bike.dropoffType === 'battery_only' ? '' : bike.requiredPartsStatus,
+                            limitedInspectionWaiverAccepted: bike.dropoffType !== 'battery_only' && bike.requiredPartsStatus === 'not_provided' && bike.limitedInspectionWaiverAccepted === true,
+                            rushLaborRequested: bike.dropoffType !== 'battery_only' && bike.rushLaborRequested === true,
+                            requestedReturnDate: bike.dropoffType !== 'battery_only' && bike.rushLaborRequested ? bike.requestedReturnDate : ''
                         }))
                         : this.formType === 'express'
                             ? [{
                                 make: f.bikes[0].make.trim(),
                                 model: f.bikes[0].model.trim(),
+                                year: String(f.bikes[0].year || '').trim(),
                                 requestedService: this.formatExpressServices(),
                                 warrantyRequest: false,
                                 warrantyPurchaseSource: '',
@@ -1609,6 +1946,12 @@ createApp({
 
         // ── Reset ─────────────────────────────────────────────────────────────
         resetForm() {
+            this.clearInactivityTimers();
+            this.clearValidationFeedback();
+            this.inactivityWarningVisible = false;
+            this.inactivityResetNotice = '';
+            this.showAddressLine2 = false;
+            this.showStandardTermsModal = false;
             this.formData = {
                 firstName: '', lastName: '', phone: '', email: '',
                 address1: '', address2: '', city: '', state: '', zip: '',
@@ -1632,6 +1975,10 @@ createApp({
                         serviceNotes: '',
                         make: '',
                         model: '',
+                        year: '',
+                        dropoffType: 'complete_bike',
+                        batteryIssueDescription: '',
+                        batteryOrderNumber: '',
                         requestedService: '',
                         warrantyRequest: false,
                         warrantyPurchaseSource: '',
@@ -1641,6 +1988,8 @@ createApp({
                         safetyThermal: false,
                         safetyImpact: false,
                         safetyMultipleConfirmed: false,
+                        requiredPartsStatus: '',
+                        limitedInspectionWaiverAccepted: false,
                         rushLaborRequested: false,
                         requestedReturnDate: ''
                     }

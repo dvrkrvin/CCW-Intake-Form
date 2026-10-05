@@ -91,6 +91,95 @@ body {
     font-weight: 600;
 }
 
+.inactivity-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(19, 28, 35, 0.62);
+    backdrop-filter: blur(3px);
+}
+
+.inactivity-dialog {
+    width: min(460px, 100%);
+    padding: 30px;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.inactivity-icon {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 34px;
+}
+
+.inactivity-dialog h2 {
+    margin: 0 0 10px;
+    font-size: 24px;
+}
+
+.inactivity-dialog p {
+    margin: 0 0 22px;
+    color: #56616a;
+    font-size: 16px;
+    line-height: 1.55;
+}
+
+.inactivity-dialog button {
+    min-width: 190px;
+    min-height: 50px;
+    padding: 12px 22px;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.session-reset-notice {
+    margin-bottom: 20px;
+    padding: 13px 15px;
+    color: #25513f;
+    background: #edf8f2;
+    border: 1px solid #b9dfcc;
+    border-left: 4px solid #2e8b62;
+}
+
+.validation-error-host {
+    position: relative;
+}
+
+.validation-error-target,
+.validation-error-host input[aria-invalid="true"],
+.validation-error-host textarea[aria-invalid="true"] {
+    border-color: #c9362b !important;
+    box-shadow: 0 0 0 3px rgba(201, 54, 43, 0.12) !important;
+}
+
+.inline-validation-message {
+    width: 100%;
+    margin: 7px 0 0;
+    color: #a52e25;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.express-service-menu > .inline-validation-message {
+    grid-column: 1 / -1;
+    order: -1;
+    margin: 0 0 4px;
+    padding: 10px 12px;
+    background: #fff4f3;
+    border-left: 3px solid #c9362b;
+}
+
 .workflow-step-panel > h2:first-child {
     margin-top: 20px;
 }
@@ -179,9 +268,9 @@ body {
 
 .express-progress-sticky {
     position: sticky;
-    top: 10px;
+    top: 6px;
     z-index: 18;
-    box-shadow: 0 8px 18px rgba(28, 39, 49, 0.09);
+    box-shadow: 0 5px 14px rgba(28, 39, 49, 0.08);
 }
 
 .progress-meta {
@@ -469,11 +558,11 @@ body {
 }
 
 .toggle-indicator.express {
-    transform: translateX(0);
+    transform: translateX(100%);
 }
 
 .toggle-indicator.standard {
-    transform: translateX(100%);
+    transform: translateX(0);
 }
 
 .toggle-indicator.battery {
@@ -795,8 +884,8 @@ h3 {
 }
 
 .express-progress-card {
-    margin: 22px 0;
-    padding: 18px 20px;
+    margin: 16px 0;
+    padding: 10px 14px;
     background: #f7f7f7;
     border: 2px solid #d5d5d5;
     transition: border-color 0.25s, background 0.25s;
@@ -811,8 +900,8 @@ h3 {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 7px;
 }
 
 .express-progress-header strong,
@@ -822,13 +911,13 @@ h3 {
 
 .express-progress-header strong {
     color: #23332f;
-    font-size: 18px;
+    font-size: 15px;
 }
 
 .progress-eyebrow {
     margin-bottom: 2px;
     color: #6b7471;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -836,12 +925,12 @@ h3 {
 
 .progress-remaining {
     color: #52605c;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .express-progress-track {
-    height: 12px;
+    height: 7px;
     overflow: hidden;
     background: #dfe4e2;
     border-radius: 999px;
@@ -1146,6 +1235,29 @@ h3 {
     grid-template-columns: 2fr 0.75fr 0.75fr;
 }
 
+.address-line-2-row {
+    margin-top: -6px;
+}
+
+.add-address-line-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 42px;
+    margin: -6px 0 16px;
+    padding: 6px 2px;
+    color: #4f5862;
+    background: transparent;
+    border: 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.add-address-line-button:hover {
+    color: var(--accent);
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -1330,12 +1442,503 @@ select {
     border-left: 3px solid #68717b;
 }
 
+.bike-readiness-card {
+    margin: 8px 0 14px;
+    padding: 14px;
+    background: #f7f8fa;
+    border: 1px solid #d5d9de;
+    border-left: 3px solid #68717b;
+}
+
+.bike-readiness-heading {
+    margin-bottom: 12px;
+}
+
+.bike-readiness-heading h4 {
+    margin: 0 0 3px;
+    color: #2b2b2b;
+    font-size: 16px;
+}
+
+.bike-readiness-heading p {
+    margin: 0;
+    color: #686e75;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.bike-readiness-card .bike-safety-card,
+.bike-readiness-card .required-parts-card {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+.bike-readiness-card .required-parts-card {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #d5d9de;
+}
+
+.readiness-check-row fieldset {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+}
+
+.readiness-check-row fieldset legend {
+    margin: 0;
+    padding: 0;
+}
+
+.compact-answer-row {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.compact-answer-row label,
+.required-parts-options.compact-answer-row label {
+    min-height: 40px;
+    padding: 7px 10px;
+    white-space: nowrap;
+}
+
+.required-parts-card {
+    margin: 8px 0 14px;
+    padding: 14px;
+    background: #f7f8fa;
+    border: 1px solid #d5d9de;
+    border-left: 3px solid #68717b;
+}
+
+.required-parts-card fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.required-parts-card legend {
+    margin-bottom: 9px;
+    color: #2b2b2b;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.required-parts-options {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.55fr);
+    gap: 8px;
+}
+
+.required-parts-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    margin: 0;
+    padding: 9px 11px;
+    color: #343434;
+    background: #fff;
+    border: 1px solid #cfcfcf;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.required-parts-options label.selected {
+    background: #fff7f5;
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.required-parts-options input,
+.limited-inspection-waiver input {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.limited-inspection-waiver {
+    margin-top: 12px;
+    padding: 12px;
+    color: #633126;
+    background: #fff3f0;
+    border: 1px solid #e5b6ad;
+    border-left: 3px solid #c0392b;
+}
+
+.limited-inspection-waiver > strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #7d2d20;
+    font-size: 13px;
+}
+
+.limited-inspection-waiver label {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0;
+    color: #4c3732;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.limited-inspection-waiver input {
+    margin-top: 1px;
+}
+
+@media (max-width: 640px) {
+    .required-parts-options {
+        grid-template-columns: 1fr;
+    }
+}
+
 .bike-warranty-purchase-card {
     margin: 8px 0 14px;
     padding: 14px;
     background: #f7f8fa;
     border: 1px solid #d5d9de;
     border-left: 3px solid #68717b;
+}
+
+.warranty-purchase-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.warranty-purchase-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 54px;
+    margin: 0;
+    padding: 9px 11px;
+    color: #343434;
+    background: #fff;
+    border: 1px solid #cfcfcf;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.warranty-purchase-options label.selected {
+    background: #fff7f5;
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.warranty-purchase-options input {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.warranty-purchase-options span {
+    display: grid;
+    gap: 2px;
+}
+
+.warranty-purchase-options strong {
+    color: #2b2b2b;
+    font-size: 13px;
+}
+
+.warranty-purchase-options small {
+    color: #6a7077;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.streamlined-warranty-followup {
+    padding: 12px 14px !important;
+    background: #fffdf6 !important;
+    border: 1px solid #ead99b !important;
+}
+
+.limited-diagnostic-notice {
+    display: grid;
+    gap: 4px;
+    margin: 10px 0 12px;
+    padding: 11px 13px;
+    color: #4b3d10;
+    background: #fff8df;
+    border: 1px solid #dfc66d;
+    border-left: 4px solid #b88a00;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.limited-diagnostic-notice strong {
+    color: #352b0c;
+    font-size: 13px;
+}
+
+.warranty-review-request {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    color: #343434;
+    background: #fff;
+    border: 1px solid #d8c980;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.warranty-review-request.selected {
+    background: #fff8df;
+    border-color: #b89413;
+    box-shadow: inset 0 0 0 1px #b89413;
+}
+
+.warranty-review-request input {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    margin: 1px 0 0;
+    accent-color: #8b6c00;
+}
+
+.warranty-review-request span {
+    display: grid;
+    gap: 3px;
+}
+
+.warranty-review-request strong {
+    color: #2b2b2b;
+    font-size: 13px;
+}
+
+.warranty-review-request small {
+    color: #6a6250;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.warranty-request-details {
+    margin-top: 12px;
+}
+
+.dropoff-type-selector {
+    min-width: 0;
+    margin: 0 0 16px;
+    padding: 0;
+    border: 0;
+}
+
+.dropoff-mode-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    background: #f7f8fa;
+    border: 1px solid #d7dbe0;
+    border-radius: 6px;
+}
+
+.dropoff-mode-bar > div {
+    display: grid;
+    gap: 2px;
+}
+
+.dropoff-mode-label {
+    color: #747a81;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.dropoff-mode-bar strong {
+    color: #272a2e;
+    font-size: 14px;
+}
+
+.dropoff-mode-action {
+    min-height: 40px;
+    padding: 8px 11px;
+    color: #3f4953;
+    background: #fff;
+    border: 1px solid #cbd1d7;
+    border-radius: 5px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.dropoff-mode-action:hover {
+    color: var(--accent-ink);
+    border-color: var(--accent);
+}
+
+.dropoff-type-selector legend {
+    margin-bottom: 9px;
+    color: #2b2b2b;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.dropoff-type-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dropoff-type-options label {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 62px;
+    margin: 0;
+    padding: 11px 13px;
+    color: #343434;
+    background: #fff;
+    border: 1px solid #cfd3d8;
+    border-radius: 6px;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.dropoff-type-options label.selected {
+    background: #fff7f5;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.dropoff-type-options input {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.dropoff-type-options span {
+    display: grid;
+    gap: 2px;
+}
+
+.dropoff-type-options strong {
+    color: #2b2b2b;
+    font-size: 14px;
+    line-height: 1.25;
+}
+
+.dropoff-type-options small {
+    color: #666d75;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.battery-only-notice {
+    display: grid;
+    gap: 4px;
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    color: #5d4b1f;
+    background: #fff9e8;
+    border: 1px solid #ead59a;
+    border-left: 4px solid #c59016;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.battery-only-notice strong {
+    color: #463710;
+}
+
+.battery-only-request-card {
+    margin: 8px 0 14px;
+    padding: 16px;
+    background: #f8f9fb;
+    border: 1px solid #d5d9de;
+    border-left: 3px solid #68717b;
+}
+
+.battery-only-request-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.battery-only-request-heading h4 {
+    margin: 2px 0 0;
+    color: #2b2b2b;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.battery-only-eyebrow {
+    color: #6b7076;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.battery-only-badge {
+    flex-shrink: 0;
+    padding: 5px 8px;
+    color: #6b5524;
+    background: #fff4cf;
+    border: 1px solid #e1c76e;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.battery-only-reference-row {
+    margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+    .dropoff-type-options,
+    .warranty-purchase-options {
+        grid-template-columns: 1fr;
+    }
+
+    .battery-only-request-heading {
+        gap: 10px;
+    }
 }
 
 .bike-warranty-row .warranty-followup {
@@ -1604,6 +2207,206 @@ input[type="checkbox"] {
     border-top: 1px solid #ddd;
     max-height: 350px;
     overflow-y: auto;
+}
+
+.terms-review-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 14px;
+    padding: 15px 16px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+}
+
+.terms-review-action > div {
+    display: grid;
+    gap: 3px;
+}
+
+.terms-review-action strong {
+    color: #22272d;
+    font-size: 14px;
+}
+
+.terms-review-action span {
+    color: #606872;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.terms-review-action button,
+.terms-modal-accept,
+.terms-modal-secondary {
+    min-height: 46px;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.terms-review-action button {
+    flex-shrink: 0;
+    color: #fff;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.terms-review-action button.accepted {
+    color: #245c35;
+    background: #eef9f1;
+    border-color: #86ba94;
+}
+
+.terms-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: none;
+    place-items: center;
+    padding: 20px;
+    background: rgba(12, 18, 24, 0.66);
+    backdrop-filter: blur(3px);
+}
+
+.terms-modal-overlay.open {
+    display: grid;
+}
+
+.terms-modal-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(780px, 100%);
+    max-height: min(88vh, 900px);
+    overflow: hidden;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.terms-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #dce1e6;
+}
+
+.terms-modal-header span {
+    color: #707780;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.terms-modal-header h3 {
+    margin: 2px 0 0;
+    color: #202428;
+    font-size: 20px;
+}
+
+.terms-modal-header > button {
+    width: 44px;
+    height: 44px;
+    color: #49515a;
+    background: #f1f3f5;
+    border: 0;
+    border-radius: 50%;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.terms-modal-body {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 20px 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.terms-modal-body h4:first-child {
+    margin-top: 0;
+}
+
+.terms-modal-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 20px max(14px, env(safe-area-inset-bottom));
+    background: #f7f8fa;
+    border-top: 1px solid #dce1e6;
+}
+
+.terms-modal-footer p {
+    margin: 0;
+    color: #535b64;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.terms-modal-footer > div {
+    display: flex;
+    gap: 8px;
+}
+
+.terms-modal-secondary {
+    color: #343a40;
+    background: #fff;
+    border: 1px solid #c6ccd2;
+}
+
+.terms-modal-accept {
+    color: #fff;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+@media (max-width: 640px) {
+    .dropoff-mode-bar,
+    .terms-review-action,
+    .terms-modal-footer {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+
+    .readiness-check-row fieldset {
+        grid-template-columns: 1fr;
+    }
+
+    .compact-answer-row {
+        justify-content: stretch;
+    }
+
+    .compact-answer-row label,
+    .required-parts-options.compact-answer-row label {
+        flex: 1;
+        justify-content: center;
+        white-space: normal;
+    }
+
+    .terms-modal-overlay {
+        padding: 8px;
+    }
+
+    .terms-modal-panel {
+        max-height: 96vh;
+    }
+
+    .terms-modal-footer > div {
+        display: grid;
+        grid-template-columns: 0.65fr 1.35fr;
+    }
 }
 /* ────────────────────────────────────────────────────────── */
 
@@ -2001,6 +2804,10 @@ textarea {
     min-width: 0;
 }
 
+.bike-make-model-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(108px, 0.42fr);
+}
+
 .custom-bike-entry {
     border-color: var(--accent);
     background: var(--accent-soft);
@@ -2124,7 +2931,8 @@ label:has(input:focus-visible) {
     }
 
     .form-row,
-    .city-state-zip-row {
+    .city-state-zip-row,
+    .bike-make-model-row {
         grid-template-columns: 1fr;
     }
 
@@ -2752,5 +3560,19 @@ textarea::placeholder {
 
     .toggle-btn {
         font-size: 14px;
+    }
+
+    .express-progress-sticky .express-progress-header {
+        align-items: center;
+        flex-direction: row;
+        margin-bottom: 6px;
+    }
+
+    .express-progress-sticky .progress-meta {
+        margin-left: auto;
+    }
+
+    .express-progress-sticky .progress-remaining {
+        display: none;
     }
 }
