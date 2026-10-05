@@ -233,7 +233,6 @@ createApp({
             activeStateOptionIndex: -1,
             showSuccessModal: false,
             showAddressLine2: false,
-            showStandardTermsModal: false,
             allStates: [
                 {abbr:'AL',name:'Alabama'},{abbr:'AK',name:'Alaska'},{abbr:'AZ',name:'Arizona'},
                 {abbr:'AR',name:'Arkansas'},{abbr:'CA',name:'California'},{abbr:'CO',name:'Colorado'},
@@ -553,7 +552,6 @@ createApp({
                 return;
             }
             this.formType = type;
-            this.showStandardTermsModal = false;
             this.clearValidationFeedback();
             this.errorMessage = '';
             this.stepErrorMessage = '';
@@ -1001,12 +999,6 @@ createApp({
             this.syncBikeRequestedService(bike);
         },
 
-        setBikeDropoffType(bike, type) {
-            if (bike.dropoffType === type) return;
-            bike.dropoffType = type;
-            this.onBikeDropoffTypeChange(bike);
-        },
-
         onRequiredPartsStatusChange(bike) {
             if (bike.requiredPartsStatus !== 'not_provided') {
                 bike.limitedInspectionWaiverAccepted = false;
@@ -1044,31 +1036,11 @@ createApp({
 
         syncStandardAuthorizations() {
             const acknowledged = this.formData.disclosures.fullTermsAcknowledged;
-            this.formData.disclosures.diagFeeAcknowledged = acknowledged;
+            // Full-terms acceptance covers service authorization while preserving the existing backend fields.
             this.formData.disclosures.serviceAuthorizationAcknowledged = acknowledged;
-            // Preserve the legacy A/B/C fields expected by the existing backend while presenting one clear authorization to the customer.
             this.formData.disclosures.sectionAAck = acknowledged;
             this.formData.disclosures.sectionBAck = acknowledged;
             this.formData.disclosures.sectionCAck = acknowledged;
-        },
-
-        openStandardTermsReview() {
-            this.formData.disclosures.fullTermsOpened = true;
-            this.showStandardTermsModal = true;
-            if (this.$nextTick) {
-                this.$nextTick(() => this.$refs.standardTermsDialog?.focus?.());
-            }
-        },
-
-        closeStandardTermsReview() {
-            this.showStandardTermsModal = false;
-        },
-
-        acceptStandardTerms() {
-            this.formData.disclosures.fullTermsOpened = true;
-            this.formData.disclosures.fullTermsAcknowledged = true;
-            this.syncStandardAuthorizations();
-            this.showStandardTermsModal = false;
         },
 
         addBike() {
@@ -1673,7 +1645,7 @@ createApp({
             
             // Pull from the rendered agreement so the retained PDF cannot drift from
             // the exact customer-facing terms when wording is amended later.
-            const allTerms = Array.from(document.querySelectorAll('.terms-modal-body h4, .terms-modal-body p'))
+            const allTerms = Array.from(document.querySelectorAll('.accordion-body h4, .accordion-body p'))
                 .map(element => element.textContent.trim())
                 .filter(Boolean);
 
@@ -1817,11 +1789,14 @@ createApp({
             // Standard Service fee and section validation
             if (this.formType === 'standard') {
                 this.syncStandardAuthorizations();
-                if (!f.disclosures.fullTermsOpened || !f.disclosures.fullTermsAcknowledged) {
-                    if (this.showValidationErrors([
-                        this.requiredField('', 'Open and accept the full Terms and Conditions.', 'standard-terms-acknowledgment', 3)
-                    ])) return;
+                const missingStandardAuthorizations = [];
+                if (!f.disclosures.diagFeeAcknowledged) {
+                    missingStandardAuthorizations.push(this.requiredField('', 'Acknowledge the $99 service minimum.', 'standard-fee-acknowledgment', 3));
                 }
+                if (!f.disclosures.fullTermsOpened || !f.disclosures.fullTermsAcknowledged) {
+                    missingStandardAuthorizations.push(this.requiredField('', 'Open and acknowledge the full Terms and Conditions.', 'standard-terms-acknowledgment', 3));
+                }
+                if (this.showValidationErrors(missingStandardAuthorizations)) return;
             }
 
             // Battery Diagnostics fee and forfeiture validation
@@ -1951,7 +1926,6 @@ createApp({
             this.inactivityWarningVisible = false;
             this.inactivityResetNotice = '';
             this.showAddressLine2 = false;
-            this.showStandardTermsModal = false;
             this.formData = {
                 firstName: '', lastName: '', phone: '', email: '',
                 address1: '', address2: '', city: '', state: '', zip: '',

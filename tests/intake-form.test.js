@@ -223,15 +223,11 @@ test('clear Express services resets checkbox and stepper selections', () => {
   assert.equal(Object.keys(component.formData.expressServiceQuantities).length, 0);
 });
 
-test('single service authorization keeps legacy backend acknowledgments in sync', () => {
+test('full terms acceptance keeps service and legacy backend acknowledgments in sync', () => {
   const { component } = createHarness();
-  component.openStandardTermsReview();
-  assert.equal(component.formData.disclosures.fullTermsOpened, true);
-  assert.equal(component.showStandardTermsModal, true);
-  component.acceptStandardTerms();
-  assert.equal(component.formData.disclosures.fullTermsAcknowledged, true);
-  assert.equal(component.showStandardTermsModal, false);
-  assert.equal(component.formData.disclosures.diagFeeAcknowledged, true);
+  component.formData.disclosures.fullTermsAcknowledged = true;
+  component.syncStandardAuthorizations();
+  assert.equal(component.formData.disclosures.diagFeeAcknowledged, false);
   assert.equal(component.formData.disclosures.serviceAuthorizationAcknowledged, true);
   assert.equal(component.formData.disclosures.sectionAAck, true);
   assert.equal(component.formData.disclosures.sectionBAck, true);
@@ -846,7 +842,7 @@ test('requires Express terms but does not require an address', async () => {
   assert.match(component.errorMessage, /Accept the Express Visit terms/i);
 });
 
-test('requires the single consolidated service authorization', async () => {
+test('requires the standard fee and full terms acknowledgments', async () => {
   const { component } = createHarness();
   fillCommon(component);
   Object.assign(component.formData.bikes[0], {
@@ -856,7 +852,9 @@ test('requires the single consolidated service authorization', async () => {
     safetyHistory: 'none'
   });
   await component.submitForm();
-  assert.match(component.errorMessage, /Open and accept the full Terms and Conditions/i);
+  assert.match(component.errorMessage, /Acknowledge the \$99 service minimum/i);
+  assert.match(component.errorMessage, /Open and acknowledge the full Terms and Conditions/i);
+  assert.doesNotMatch(component.errorMessage, /Confirm the service and testing authorization/i);
 });
 
 test('battery-only mode requires an issue description and builds a fixed warranty request', () => {
@@ -931,9 +929,10 @@ test('requires opening and acknowledging the full standard terms', async () => {
     safetyHistory: 'none'
   });
   enableSuccessfulSubmission(component);
+  component.formData.disclosures.diagFeeAcknowledged = true;
 
   await component.submitForm();
-  assert.match(component.errorMessage, /Open and accept the full Terms and Conditions/i);
+  assert.match(component.errorMessage, /Open and acknowledge the full Terms and Conditions/i);
   assert.equal(apiCalls.length, 0);
 
   component.formData.disclosures.fullTermsOpened = true;

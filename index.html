@@ -169,6 +169,13 @@
                                 >
                             </div>
                         </div>
+                        <button
+                            v-if="!showAddressLine2 && !formData.address2"
+                            type="button"
+                            class="add-address-line-button"
+                            aria-controls="customer-address-2"
+                            @click="showAddressLine2 = true"
+                        >+ Add apartment, suite, or unit</button>
 
                         <div v-if="showAddressLine2 || formData.address2" class="form-row address-line-2-row">
                             <div class="form-group full-width">
@@ -182,13 +189,6 @@
                                 >
                             </div>
                         </div>
-                        <button
-                            v-else
-                            type="button"
-                            class="add-address-line-button"
-                            @click="showAddressLine2 = true"
-                        >+ Add apartment, suite, or unit</button>
-
                         <div class="form-row city-state-zip-row">
                             <div class="form-group city-field">
                                 <label for="customer-city">City <span class="required">*</span></label>
@@ -308,17 +308,25 @@
 
                             <div v-show="expandedBikeId === bike.id" class="bike-card-body">
 
-                            <div class="dropoff-mode-bar">
-                                <div>
-                                    <span class="dropoff-mode-label">Drop-off type</span>
-                                    <strong>{{ bike.dropoffType === 'battery_only' ? 'Battery only' : 'Complete bike' }}</strong>
+                            <fieldset class="dropoff-type-selector">
+                                <legend>What are you dropping off? <span class="required">*</span></legend>
+                                <div class="dropoff-type-options">
+                                    <label :class="{ selected: bike.dropoffType === 'complete_bike' }">
+                                        <input type="radio" v-model="bike.dropoffType" value="complete_bike" @change="onBikeDropoffTypeChange(bike)">
+                                        <span>
+                                            <strong>Complete bike</strong>
+                                            <small>Standard service check-in</small>
+                                        </span>
+                                    </label>
+                                    <label :class="{ selected: bike.dropoffType === 'battery_only' }">
+                                        <input type="radio" v-model="bike.dropoffType" value="battery_only" @change="onBikeDropoffTypeChange(bike)">
+                                        <span>
+                                            <strong>Battery only</strong>
+                                            <small>Warranty evaluation only</small>
+                                        </span>
+                                    </label>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="dropoff-mode-action"
-                                    @click="setBikeDropoffType(bike, bike.dropoffType === 'battery_only' ? 'complete_bike' : 'battery_only')"
-                                >{{ bike.dropoffType === 'battery_only' ? 'Switch to complete bike' : 'Dropping off only a battery?' }}</button>
-                            </div>
+                            </fieldset>
 
                             <div v-if="bike.dropoffType === 'battery_only'" class="battery-only-notice" role="note">
                                 <strong>Battery-only drop-offs require active Charged Cycle Works warranty coverage.</strong>
@@ -627,16 +635,10 @@
 
                             </div>
 
-                            <div class="bike-readiness-card">
-                                <div class="bike-readiness-heading">
-                                    <h4>Drop-off Checks</h4>
-                                    <p>Two required answers help us inspect and test the bike safely.</p>
-                                </div>
-
-                                <div class="bike-safety-card readiness-check-row">
+                                <div class="bike-safety-card">
                                     <fieldset :id="`bike-${bike.id}-safety-history`" tabindex="-1">
                                         <legend>Any water submersion, overheating/fire, or significant battery or wiring impact? <span class="required">*</span></legend>
-                                        <div class="safety-answer-row compact-answer-row">
+                                        <div class="safety-answer-row">
                                             <label>
                                                 <input type="radio" v-model="bike.safetyHistory" value="none" @change="onBikeSafetyHistoryChange(bike)">
                                                 No
@@ -658,10 +660,10 @@
                                     </div>
                                 </div>
 
-                                <div v-if="bike.dropoffType === 'complete_bike'" class="required-parts-card readiness-check-row">
+                                <div v-if="bike.dropoffType === 'complete_bike'" class="required-parts-card">
                                     <fieldset :id="`bike-${bike.id}-required-parts`" tabindex="-1">
                                         <legend>Will you leave the keys, battery, and all parts needed to power on and test the bike? <span class="required">*</span></legend>
-                                        <div class="required-parts-options compact-answer-row">
+                                        <div class="required-parts-options">
                                             <label :class="{ selected: bike.requiredPartsStatus === 'provided' }">
                                                 <input
                                                     type="radio"
@@ -693,7 +695,6 @@
                                         </label>
                                     </div>
                                 </div>
-                            </div>
 
                             <div v-if="bike.dropoffType === 'complete_bike'" class="form-row rush-row">
                                 <div class="form-group full-width">
@@ -1108,6 +1109,10 @@
                             <strong>even if repairs are declined or diagnostics are inconclusive</strong>. For bikes
                             requiring diagnosis, this authorizes the first hour of diagnostic work.
                         </p>
+                        <label id="standard-fee-acknowledgment" class="fee-checkbox-label" tabindex="-1">
+                            <input type="checkbox" v-model="formData.disclosures.diagFeeAcknowledged">
+                            <span>I understand and agree to the $99 service minimum <span class="required">*</span></span>
+                        </label>
                     </div>
 
                     <!-- BATTERY: $400 Upfront / Last-Ditch Effort / Forfeiture Callout -->
@@ -1151,7 +1156,7 @@
                     </div>
 
                     <!-- Section A -->
-                    <div v-if="formType !== 'standard'" class="disclosure-box">
+                    <div class="disclosure-box">
                         <h4>A. SAFETY AND BATTERY DISCLOSURES</h4>
 
                         <template v-if="formType === 'standard'">
@@ -1191,7 +1196,7 @@
                     </div>
 
                     <!-- Section B -->
-                    <div v-if="formType !== 'standard'" class="disclosure-box">
+                    <div class="disclosure-box">
                         <h4>B. OPERATIONAL AUTHORIZATION & TESTING</h4>
                         
                         <!-- Standard Service Wording (Streamlined) -->
@@ -1211,7 +1216,7 @@
                     </div>
 
                     <!-- Section C -->
-                    <div v-if="formType !== 'standard'" class="disclosure-box">
+                    <div class="disclosure-box">
                         <h4>C. QUALITY CONTROL AND OPERATIONAL ACCESS</h4>
                         
                         <!-- Standard Service Wording -->
@@ -1242,38 +1247,12 @@
                         </ul>
                     </div>
 
-                    <div id="standard-terms-acknowledgment" class="terms-review-action" tabindex="-1">
-                        <div>
-                            <strong>{{ formData.disclosures.fullTermsAcknowledged ? 'Terms accepted' : 'Terms review required' }}</strong>
-                            <span>Review the complete 13-article agreement and accept it before signing.</span>
-                        </div>
-                        <button type="button" :class="{ accepted: formData.disclosures.fullTermsAcknowledged }" @click="openStandardTermsReview">
-                            {{ formData.disclosures.fullTermsAcknowledged ? 'Review Terms' : 'Review and Accept Terms' }}
-                        </button>
-                    </div>
-
-                    <div
-                        :class="['terms-modal-overlay', { open: showStandardTermsModal && formType === 'standard' }]"
-                        :aria-hidden="!(showStandardTermsModal && formType === 'standard')"
-                        @click.self="closeStandardTermsReview"
-                        @keydown.esc="closeStandardTermsReview"
-                    >
-                        <section
-                            ref="standardTermsDialog"
-                            class="terms-modal-panel"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-labelledby="standard-terms-title"
-                            tabindex="-1"
-                        >
-                            <header class="terms-modal-header">
-                                <div>
-                                    <span>Service authorization</span>
-                                    <h3 id="standard-terms-title">Terms and Conditions</h3>
-                                </div>
-                                <button type="button" aria-label="Close terms" @click="closeStandardTermsReview">×</button>
-                            </header>
-                            <div class="terms-text terms-modal-body">
+                    <details class="terms-accordion" @toggle="formData.disclosures.fullTermsOpened = formData.disclosures.fullTermsOpened || $event.target.open">
+                        <summary class="terms-accordion-header">
+                            <span class="accordion-title">View Full Terms and Conditions (13 Articles)</span>
+                            <span class="accordion-hint">Click to expand &#9660;</span>
+                        </summary>
+                        <div class="terms-text accordion-body">
                             <h4>1. Estimates and authorization</h4>
                             <p>Estimates are provided when feasible. Repairs are performed only as authorized. Additional repairs or parts that change the authorized total must be approved in writing by signature, email, or text/SMS from the number on file. Authorization records are retained with the repair order.</p>
                             <p>Unless the repair order states otherwise, an estimate is not a guaranteed final price. Taxes, shipping, outsourced services, and concealed damage may affect the final price, but charges beyond the customer's authorized amount require additional approval.</p>
@@ -1337,16 +1316,19 @@
                             <p>Nothing in these terms releases Charged Cycle Works from liability that cannot lawfully be waived, limits a nonwaivable consumer remedy, or excuses Charged Cycle Works from performing authorized services with reasonable care.</p>
                             <p>If any provision is determined to be unenforceable, that provision will be enforced to the maximum lawful extent and the remaining provisions will continue in effect. Utah law governs the service transaction except where controlling law requires otherwise.</p>
                             <p style="margin-top: 20px; font-style: italic; font-size: 12px;">These service terms should be reviewed periodically with Utah counsel as laws and business practices change.</p>
-                            </div>
-                            <footer class="terms-modal-footer">
-                                <p>By selecting “I Agree,” I accept the $99 service minimum, authorized testing, key service terms, and all 13 articles above.</p>
-                                <div>
-                                    <button type="button" class="terms-modal-secondary" @click="closeStandardTermsReview">Not Yet</button>
-                                    <button type="button" class="terms-modal-accept" @click="acceptStandardTerms">I Agree to All Terms</button>
-                                </div>
-                            </footer>
-                        </section>
-                    </div>
+                        </div>
+                    </details>
+
+                    <label v-if="formType === 'standard'" id="standard-terms-acknowledgment" :class="['fee-checkbox-label', 'full-terms-acknowledgment', { disabled: !formData.disclosures.fullTermsOpened }]" tabindex="-1">
+                        <input
+                            type="checkbox"
+                            v-model="formData.disclosures.fullTermsAcknowledged"
+                            :disabled="!formData.disclosures.fullTermsOpened"
+                            @change="syncStandardAuthorizations"
+                        >
+                        <span v-if="formData.disclosures.fullTermsOpened">I opened, reviewed, and agree to all 13 Terms and Conditions, including the service minimum and labor rate, authorized testing, operational access, warranty, storage, aftermarket-parts, modification, and limitation-of-damages provisions. <span class="required">*</span></span>
+                        <span v-else>Open the full Terms and Conditions above before acknowledging them. <span class="required">*</span></span>
+                    </label>
 
                     </div>
                 </template>

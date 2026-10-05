@@ -24,24 +24,29 @@ test('contains one complete six-part Express terms acknowledgment', () => {
   assert.match(html, /all six Express Visit terms and conditions/);
 });
 
-test('requires deliberate review of full standard terms and exposes key provisions', () => {
+test('requires deliberate in-page review of full standard terms and exposes key provisions', () => {
   assert.match(html, /KEY SERVICE TERMS AT A GLANCE/);
-  assert.match(html, /@click="openStandardTermsReview"/);
-  assert.match(html, /role="dialog"/);
-  assert.match(html, /@click="acceptStandardTerms"/);
-  assert.match(html, /I Agree to All Terms/);
-  assert.match(html, /terms-modal-overlay', \{ open: showStandardTermsModal/);
-  assert.match(css, /\.terms-modal-panel\s*\{/);
-  assert.match(css, /\.terms-modal-overlay\.open\s*\{[\s\S]*?display:\s*grid/);
-  assert.match(css, /\.terms-modal-accept\s*\{/);
+  assert.match(html, /class="terms-accordion"/);
+  assert.match(html, /View Full Terms and Conditions \(13 Articles\)/);
+  assert.match(html, /fullTermsOpened = formData\.disclosures\.fullTermsOpened \|\| \$event\.target\.open/);
+  assert.match(html, /class="terms-text accordion-body"/);
+  assert.match(html, /full-terms-acknowledgment/);
+  assert.match(html, /:disabled="!formData\.disclosures\.fullTermsOpened"/);
+  assert.match(html, /service minimum and labor rate, authorized testing, operational access/);
+  assert.doesNotMatch(html, /id="standard-service-authorization"/);
+  assert.match(css, /\.terms-accordion\s*\{/);
+  assert.match(css, /\.accordion-body\s*\{/);
 });
 
-test('uses a compact default bike path and progressively reveals optional address details', () => {
-  assert.match(html, /class="dropoff-mode-bar"/);
-  assert.match(html, /Dropping off only a battery\?/);
-  assert.doesNotMatch(html, /class="dropoff-type-options"/);
+test('keeps the original drop-off choices and progressively reveals optional address details', () => {
+  assert.match(html, /class="dropoff-type-selector"/);
+  assert.match(html, /class="dropoff-type-options"/);
+  assert.match(html, /What are you dropping off\?/);
+  assert.doesNotMatch(html, /class="dropoff-mode-bar"/);
+  assert.match(html, /id="customer-address-2"/);
   assert.match(html, /v-if="showAddressLine2 \|\| formData\.address2"/);
   assert.match(html, /Add apartment, suite, or unit/);
+  assert.match(css, /\.add-address-line-button\s*\{/);
 });
 
 test('keeps all form modes at the same width and uses gap-free Express columns', () => {
