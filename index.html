@@ -555,10 +555,16 @@
                                         <span>Our diagnostic capabilities for this model are limited. We may need to consult with the manufacturer, which can result in longer diagnosis and service times.</span>
                                     </div>
 
-                                    <label :for="`bike-${bike.id}-service-notes`" class="service-notes-label">Additional Details <span class="optional-label">Optional</span></label>
+                                    <label :for="`bike-${bike.id}-service-notes`" class="service-notes-label">
+                                        {{ requiresDiagnosticDescription(bike) ? 'Describe the Issue' : 'Additional Details' }}
+                                        <span v-if="requiresDiagnosticDescription(bike)" class="required">*</span>
+                                        <span v-else class="optional-label">Optional</span>
+                                    </label>
                                     <textarea
                                         :id="`bike-${bike.id}-service-notes`"
                                         v-model="bike.serviceNotes"
+                                        :required="requiresDiagnosticDescription(bike)"
+                                        :aria-required="requiresDiagnosticDescription(bike)"
                                         class="service-notes-input"
                                         placeholder="Describe symptoms, damaged parts, or anything our service team should know."
                                         @input="syncBikeRequestedService(bike)"
@@ -1105,13 +1111,14 @@
                             <span class="fee-label">Service Minimum</span>
                         </div>
                         <p class="fee-description">
-                            A <strong>$99 service minimum</strong> is charged on every visit regardless of outcome —
-                            <strong>even if repairs are declined or diagnostics are inconclusive</strong>. For bikes
-                            requiring diagnosis, this authorizes the first hour of diagnostic work.
+                            A <strong>$99 service minimum</strong> applies to every visit,
+                            <strong>even if repairs are declined or diagnostics are inconclusive</strong>. The only
+                            exception is an approved warranty claim for which the manufacturer covers the full cost
+                            of all labor and parts. For bikes requiring diagnosis, this authorizes the first hour of diagnostic work.
                         </p>
                         <label id="standard-fee-acknowledgment" class="fee-checkbox-label" tabindex="-1">
                             <input type="checkbox" v-model="formData.disclosures.diagFeeAcknowledged">
-                            <span>I understand and agree to the $99 service minimum <span class="required">*</span></span>
+                            <span>I understand and agree to the $99 service minimum and the warranty exception described above. <span class="required">*</span></span>
                         </label>
                     </div>
 
@@ -1238,7 +1245,7 @@
                     <div v-if="formType === 'standard'" class="disclosure-box key-terms-callout">
                         <h4>KEY SERVICE TERMS AT A GLANCE</h4>
                         <ul>
-                            <li><strong>Minimum and rate:</strong> $99 service minimum; additional authorized labor is $159/hour unless quoted otherwise.</li>
+                            <li><strong>Minimum and rate:</strong> $99 service minimum, except for an approved warranty claim with all labor and parts fully covered by the manufacturer; additional authorized labor is $159/hour unless quoted otherwise.</li>
                             <li><strong>Additional work:</strong> Charges beyond the authorized amount require documented customer approval.</li>
                             <li><strong>Workmanship:</strong> Limited 30-day warranty on the specific labor performed, subject to the full terms.</li>
                             <li><strong>Storage:</strong> Seven calendar days are free after completion notice, then $20 per calendar day.</li>
@@ -1259,7 +1266,7 @@
                             <p>The customer authorizes reasonable disassembly, inspection, and diagnostic procedures necessary to evaluate the reported condition. Diagnosis may require removal of parts or assemblies, and the equipment may not be safely or economically returnable to its exact pre-disassembly condition. The shop will obtain approval before performing additional billable repairs.</p>
 
                             <h4>2. Service minimum and disassembly</h4>
-                            <p>The standard $99 service minimum applies to every general-service visit, including when repairs are declined, a reported problem cannot be duplicated, or diagnosis is inconclusive. For bikes requiring diagnosis, the service minimum authorizes the first hour of diagnostic work. Additional approved labor is billed at the stated shop rate unless a flat-rate quote is provided.</p>
+                            <p>The standard $99 service minimum applies to every general-service visit, including when repairs are declined, a reported problem cannot be duplicated, or diagnosis is inconclusive. The only exception is an approved warranty claim for which the manufacturer covers the full cost of all labor and parts. For bikes requiring diagnosis, the service minimum authorizes the first hour of diagnostic work. Additional approved labor is billed at the stated shop rate unless a flat-rate quote is provided.</p>
                             <p>Some faults require disassembly to confirm. Parts removed during diagnosis may not be suitable for reinstallation until the customer authorizes the necessary repair or reassembly work. If the customer declines a repair after disassembly, additional labor or parts may be necessary to safely reassemble the bike. The shop is not required to reassemble or release equipment in a condition the shop reasonably believes is unsafe to operate.</p>
 
                             <h4>3. Electrical and lithium-battery safety</h4>

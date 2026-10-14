@@ -60,6 +60,53 @@ test('submitServiceIntake rejects non-success HTTP responses', async () => {
   }
 });
 
+test('submission errors retain server details but show safe customer explanations', async () => {
+  const originalFetch = global.fetch;
+  const originalFormData = global.FormData;
+  const originalError = console.error;
+  global.FormData = FakeFormData;
+  console.error = () => {};
+  try {
+    const cases = [
+      { status: 400, body: { message: 'Express Visit services cannot exceed 30 minutes' }, expected: /exceed the 30-minute limit/ },
+      { status: 400, body: { message: 'Shopmonkey Create Error: 429 - private upstream details' }, expected: /too many requests/ },
+      { status: 400, body: { message: 'Shopmonkey Create Error: 503 - private upstream details' }, expected: /temporarily unavailable/ },
+      { status: 400, body: { message: 'Shopmonkey Create Error: 400 - private upstream details' }, expected: /could not accept some/ },
+      { status: 400, body: { message: 'Failed', order_ids: ['created-order'] }, expected: /An order was created/ },
+      { status: 403, body: {}, expected: /could not access/ },
+      { status: 413, body: {}, expected: /document was too large/ },
+      { status: 502, body: null, expected: /temporarily unavailable/ },
+      { status: 200, body: null, expected: /could not confirm/ },
+      { status: 200, body: { success: false, message: 'private upstream details' }, expected: /could not confirm/ }
+    ];
+    for (const item of cases) {
+      global.fetch = async () => ({
+        ok: item.status === 200, status: item.status,
+        json: async () => { if (!item.body) throw new SyntaxError('HTML response'); return item.body; }
+      });
+      await assert.rejects(api.submitServiceIntake({ customerInfo: { lastName: 'Rider' } }, {}), error => {
+        assert.equal(error.status, item.status);
+        assert.equal(error.serverMessage, item.body?.message || '');
+        assert.match(error.customerMessage, item.expected);
+        assert.match(error.customerMessage, /entries and signature have been kept/);
+        assert.doesNotMatch(error.customerMessage, /private upstream|HTML|Shopmonkey|created-order/);
+        return true;
+      });
+    }
+    global.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    await assert.rejects(api.submitServiceIntake({ customerInfo: { lastName: 'Rider' } }, {}), error => {
+      assert.equal(error.networkFailure, true);
+      assert.match(error.customerMessage, /could not reach/);
+      assert.match(error.customerMessage, /check for an existing order/);
+      return true;
+    });
+  } finally {
+    global.fetch = originalFetch;
+    global.FormData = originalFormData;
+    console.error = originalError;
+  }
+});
+
 test('healthCheck uses the configured health endpoint', async () => {
   const originalFetch = global.fetch;
   const calls = [];

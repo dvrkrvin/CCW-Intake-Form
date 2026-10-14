@@ -19,7 +19,7 @@ function fixedDateClass(iso) {
   };
 }
 
-function createHarness({ now = '2026-01-01T19:00:00Z', apiResponse = { success: true } } = {}) {
+function createHarness({ now = '2026-01-01T19:00:00Z', apiResponse = { success: true }, apiError = null } = {}) {
   let options;
   const scrollCalls = [];
   const apiCalls = [];
@@ -28,7 +28,11 @@ function createHarness({ now = '2026-01-01T19:00:00Z', apiResponse = { success: 
     Blob,
     Date: fixedDateClass(now),
     Intl,
-    setTimeout,
+    setTimeout(callback, delay) {
+      const timer = setTimeout(callback, delay);
+      timer.unref();
+      return timer;
+    },
     clearTimeout,
     setInterval: () => 1,
     clearInterval: () => {},
@@ -46,6 +50,7 @@ function createHarness({ now = '2026-01-01T19:00:00Z', apiResponse = { success: 
     api: {
       async submitServiceIntake(data, pdfBlob) {
         apiCalls.push({ data, pdfBlob });
+        if (apiError) throw apiError;
         return apiResponse;
       }
     },
@@ -813,6 +818,91 @@ test('searches and selects multiple requested services while preserving backend 
 
   component.removeBikeService(bike, 'diagnostic_electrical');
   assert.doesNotMatch(bike.requestedService, /Electrical Diagnostic/);
+});
+
+test('requires an issue description for either diagnostic before advancing or submitting', async () => {
+  for (const serviceKey of ['diagnostic_electrical', 'diagnostic_mechanical']) {
+    const { component, apiCalls } = createHarness();
+    fillCommon(component);
+    const bike = component.formData.bikes[0];
+    Object.assign(bike, { make: 'E Ride Pro', model: 'SS 4.0', safetyHistory: 'none' });
+    component.toggleBikeService(bike, serviceKey);
+    bike.serviceNotes = '   ';
+    assert.equal(component.validateStandardStep(2), false);
+    assert.match(component.stepErrorMessage, /Describe the issue/);
+    await component.submitForm();
+    assert.match(component.errorMessage, /Describe the issue/);
+    assert.equal(apiCalls.length, 0);
+
+    bike.serviceNotes = 'The bike cuts out under load.';
+    component.syncBikeRequestedService(bike);
+    assert.equal(component.validateStandardStep(2), true);
+    enableSuccessfulSubmission(component);
+    Object.assign(component.formData.disclosures, {
+      diagFeeAcknowledged: true, fullTermsOpened: true, fullTermsAcknowledged: true
+    });
+    await component.submitForm();
+    assert.equal(apiCalls.length, 1);
+    assert.match(apiCalls[0].data.bikes[0].requestedService, /The bike cuts out under load/);
+
+    component.removeBikeService(bike, serviceKey);
+    component.toggleBikeService(bike, 'brake_pads_front');
+    bike.serviceNotes = '';
+    component.syncBikeRequestedService(bike);
+    assert.equal(component.requiresDiagnosticDescription(bike), false);
+    assert.equal(component.validateStandardStep(2), true);
+  }
+});
+
+test('failed Express submissions preserve all entries and signature and allow retry', async () => {
+  for (const failure of [
+    { apiResponse: { success: false, message: 'Server unavailable' } },
+    { apiError: Object.assign(new Error('HTTP error! status: 502'), {
+      customerMessage: 'The check-in service is temporarily unavailable. Your entries and signature have been kept.'
+    }) }
+  ]) {
+    const { component, apiCalls } = createHarness(failure);
+    component.switchFormType('express');
+    fillCommon(component, { includeAddress: false });
+    Object.assign(component.formData.bikes[0], { make: 'E Ride Pro', model: 'SS 4.0' });
+    component.formData.expressServiceQuantities.emoto_off_bike_tube = 2;
+    component.formData.disclosures.expressTermsAcknowledged = true;
+    enableSuccessfulSubmission(component);
+    let signatureCleared = false;
+    component.signaturePad.clear = () => { signatureCleared = true; };
+    const before = JSON.stringify(component.formData);
+    component.startInactivityTimers();
+    await component.submitForm();
+    assert.equal(component.submissionFailed, true);
+    if (failure.apiError) assert.equal(component.errorMessage, failure.apiError.customerMessage);
+    assert.equal(component.isSubmitting, false);
+    component.startInactivityTimers();
+    component.showInactivityWarning();
+    component.resetForInactivity();
+    assert.equal(component.inactivityResetTimer, null);
+    assert.equal(component.inactivityWarningVisible, false);
+    assert.equal(JSON.stringify(component.formData), before);
+    assert.equal(signatureCleared, false);
+    assert.equal(component.showSuccessModal, false);
+    await component.submitForm();
+    assert.equal(apiCalls.length, 2);
+    assert.equal(JSON.stringify(component.formData), before);
+    component.resetForm();
+    assert.equal(component.submissionFailed, false);
+    assert.equal(component.formData.firstName, '');
+  }
+});
+
+test('inactivity cannot clear an intake while submission is running', () => {
+  const { component } = createHarness();
+  component.formData.firstName = 'Avery';
+  component.isSubmitting = true;
+  component.startInactivityTimers();
+  component.showInactivityWarning();
+  component.resetForInactivity();
+  assert.equal(component.inactivityResetTimer, null);
+  assert.equal(component.inactivityWarningVisible, false);
+  assert.equal(component.formData.firstName, 'Avery');
 });
 
 test('shows the Express cutoff at 5 PM Mountain Time', () => {

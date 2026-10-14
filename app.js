@@ -232,6 +232,7 @@ createApp({
             stateSelection: '',
             activeStateOptionIndex: -1,
             showSuccessModal: false,
+            submissionFailed: false,
             showAddressLine2: false,
             allStates: [
                 {abbr:'AL',name:'Alabama'},{abbr:'AK',name:'Alaska'},{abbr:'AZ',name:'Arizona'},
@@ -376,6 +377,7 @@ createApp({
 
         startInactivityTimers() {
             this.clearInactivityTimers();
+            if (this.isSubmitting || this.submissionFailed) return;
             if (!this.hasInProgressIntake()) return;
             const warningDelay = Math.max(0, this.inactivityTimeoutMs - this.inactivityWarningDurationMs);
             this.inactivityWarningTimer = setTimeout(() => this.showInactivityWarning(), warningDelay);
@@ -383,6 +385,11 @@ createApp({
         },
 
         showInactivityWarning() {
+            if (this.isSubmitting || this.submissionFailed) {
+                this.clearInactivityTimers();
+                this.inactivityWarningVisible = false;
+                return;
+            }
             if (!this.hasInProgressIntake()) {
                 this.clearInactivityTimers();
                 this.inactivityWarningVisible = false;
@@ -455,6 +462,11 @@ createApp({
         },
 
         resetForInactivity() {
+            if (this.isSubmitting || this.submissionFailed) {
+                this.clearInactivityTimers();
+                this.inactivityWarningVisible = false;
+                return;
+            }
             if (!this.hasInProgressIntake()) {
                 this.clearInactivityTimers();
                 this.inactivityWarningVisible = false;
@@ -611,6 +623,7 @@ createApp({
                         if (!bike.batteryIssueDescription.trim()) missing.push(this.requiredField('', `Describe the ${name.toLowerCase()} battery issue.`, `bike-${bike.id}-battery-issue`, 2, bike.id));
                     } else {
                         if (!bike.requestedService.trim()) missing.push(this.requiredField('', `Select at least one service for ${name.toLowerCase()}.`, `bike-${bike.id}-services`, 2, bike.id));
+                        if (this.requiresDiagnosticDescription(bike) && !String(bike.serviceNotes || '').trim()) missing.push(this.requiredField('', `Describe the issue for ${name.toLowerCase()}.`, `bike-${bike.id}-service-notes`, 2, bike.id));
                         if (!bike.requiredPartsStatus) missing.push(this.requiredField('', `Answer whether all functional parts will be provided for ${name.toLowerCase()}.`, `bike-${bike.id}-required-parts`, 2, bike.id));
                         if (bike.requiredPartsStatus === 'not_provided' && !bike.limitedInspectionWaiverAccepted) {
                             missing.push(this.requiredField('', `Accept the limited inspection acknowledgment for ${name.toLowerCase()}.`, `bike-${bike.id}-limited-inspection-waiver`, 2, bike.id));
@@ -918,6 +931,13 @@ createApp({
 
         isBikeServiceSelected(bike, serviceKey) {
             return (bike.selectedServiceKeys || []).includes(serviceKey);
+        },
+
+        requiresDiagnosticDescription(bike) {
+            return bike.dropoffType !== 'battery_only' && (
+                this.isBikeServiceSelected(bike, 'diagnostic_electrical')
+                || this.isBikeServiceSelected(bike, 'diagnostic_mechanical')
+            );
         },
 
         openBikeServiceMenu(bike) {
@@ -1544,7 +1564,7 @@ createApp({
             
             if (this.formType === 'standard') {
                 pdf.splitTextToSize(
-                    `[${this.formData.disclosures.diagFeeAcknowledged ? 'X' : ' '}] Customer acknowledged the $99 service minimum (charged even if repairs are declined or diagnostics are inconclusive).`,
+                    `[${this.formData.disclosures.diagFeeAcknowledged ? 'X' : ' '}] Customer acknowledged the $99 service minimum, even if repairs are declined or diagnostics are inconclusive. The only exception is an approved warranty claim for which the manufacturer covers the full cost of all labor and parts. For bikes requiring diagnosis, this authorizes the first hour of diagnostic work.`,
                     maxWidth - 6
                 ).forEach(line => { pdf.text(line, margin + 3, yPos); addSpace(4); });
             } else {
@@ -1711,6 +1731,15 @@ createApp({
                             this.requiredField(bike.batteryIssueDescription.trim(), `Describe the ${bikeName} battery issue.`, `bike-${bike.id}-battery-issue`, 2, bike.id)
                         );
                     } else {
+                        if (this.requiresDiagnosticDescription(bike)) {
+                            requiredFields.push(this.requiredField(
+                                String(bike.serviceNotes || '').trim(),
+                                `Describe the issue for ${bikeName}.`,
+                                `bike-${bike.id}-service-notes`,
+                                2,
+                                bike.id
+                            ));
+                        }
                         requiredFields.push(
                             this.requiredField(bike.requestedService.trim(), `Select at least one service for ${bikeName}.`, `bike-${bike.id}-services`, 2, bike.id),
                             this.requiredField(bike.requiredPartsStatus, `Answer whether all functional parts will be provided for ${bikeName}.`, `bike-${bike.id}-required-parts`, 2, bike.id),
@@ -1815,6 +1844,8 @@ createApp({
             }
 
             this.isSubmitting = true;
+            this.clearInactivityTimers();
+            this.inactivityWarningVisible = false;
 
             try {
                 const pdf     = await this.generatePDF();
@@ -1903,24 +1934,33 @@ createApp({
                 const response = await api.submitServiceIntake(submissionData, pdfBlob);
 
                 if (response.success) {
+                    this.submissionFailed = false;
                     this.showSuccessModal = true;
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    this.errorMessage = response.message || 'An error occurred while submitting the form. Please try again.';
+                    this.submissionFailed = true;
+                    this.errorMessage = api.submissionErrorMessage?.({
+                        serverMessage: response.message || response.error,
+                        orderIds: response.order_ids,
+                        status: 400
+                    }) || 'The check-in service could not accept the submission. Your entries and signature have been kept. Please ask reception for assistance.';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
 
             } catch (error) {
+                this.submissionFailed = true;
                 console.error('Submission error:', error);
-                this.errorMessage = 'Unable to submit form. Please check your connection and try again.';
+                this.errorMessage = error.customerMessage || 'Unable to confirm submission. Your entries and signature have been kept. Please ask reception to check whether an order was created before trying again.';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } finally {
                 this.isSubmitting = false;
+                if (!this.submissionFailed) this.startInactivityTimers();
             }
         },
 
         // ── Reset ─────────────────────────────────────────────────────────────
         resetForm() {
+            this.submissionFailed = false;
             this.clearInactivityTimers();
             this.clearValidationFeedback();
             this.inactivityWarningVisible = false;
