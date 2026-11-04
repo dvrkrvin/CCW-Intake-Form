@@ -485,6 +485,25 @@ createApp({
             return { value, label, targetId, step, bikeId };
         },
 
+        emailValidationField() {
+            const email = String(this.formData.email || '').trim();
+            this.formData.email = email;
+            if (!email) return this.requiredField('', 'Enter an email address.', 'customer-email', 1);
+
+            // Validate the address format locally before asking the order system to accept it.
+            const parts = email.split('@');
+            const local = parts[0];
+            const labels = (parts[1] || '').split('.');
+            const valid = email.length <= 254 && parts.length === 2
+                && local.length <= 64 && /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/i.test(local)
+                && !local.startsWith('.') && !local.endsWith('.') && !local.includes('..')
+                && labels.length >= 2
+                && labels.every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label))
+                && /^(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/i.test(labels[labels.length - 1]);
+            return this.requiredField(valid,
+                'Enter a valid email address, such as name@example.com.', 'customer-email', 1);
+        },
+
         clearValidationFeedback() {
             document.querySelectorAll?.('.inline-validation-message').forEach(node => node.remove?.());
             document.querySelectorAll?.('.validation-error-host').forEach(node => node.classList?.remove('validation-error-host'));
@@ -584,7 +603,7 @@ createApp({
                     this.requiredField(this.formData.firstName.trim(), 'Enter a first name.', 'customer-first-name', 1),
                     this.requiredField(this.formData.lastName.trim(), 'Enter a last name.', 'customer-last-name', 1),
                     this.requiredField(this.formData.phone.trim(), 'Enter a phone number.', 'customer-phone', 1),
-                    this.requiredField(this.formData.email.trim(), 'Enter an email address.', 'customer-email', 1),
+                    this.emailValidationField(),
                     this.requiredField(this.formData.address1.trim(), 'Enter a street address.', 'customer-address-1', 1),
                     this.requiredField(this.formData.city.trim(), 'Enter a city.', 'customer-city', 1),
                     this.requiredField(this.formData.state.trim(), 'Select a state from the list.', 'customer-state', 1),
@@ -1699,7 +1718,7 @@ createApp({
                 this.requiredField(f.firstName.trim(), 'Enter a first name.', 'customer-first-name', 1),
                 this.requiredField(f.lastName.trim(), 'Enter a last name.', 'customer-last-name', 1),
                 this.requiredField(f.phone.trim(), 'Enter a phone number.', 'customer-phone', 1),
-                this.requiredField(f.email.trim(), 'Enter an email address.', 'customer-email', 1),
+                this.emailValidationField(),
                 this.requiredField(f.printedName.trim(), 'Enter the signer’s printed name.', 'signature-printed-name', 3),
                 this.requiredField(f.smsConsent, 'Confirm text-message consent.', 'customer-sms-consent', 1)
             ];

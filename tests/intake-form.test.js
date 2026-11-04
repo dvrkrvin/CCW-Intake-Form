@@ -202,6 +202,81 @@ test('guided Service Check-in flow validates each step before advancing', () => 
   assert.equal(component.standardStep, 3);
 });
 
+test('invalid email formats keep customers on the customer page with a targeted correction message', () => {
+  const { component } = createHarness();
+  fillCommon(component);
+  const invalidEmails = [
+    'avery', 'avery.example.com', 'avery@', '@example.com', 'avery@@example.com',
+    'avery@example', 'avery@example.', 'avery@.com', 'avery@example..com',
+    'avery rider@example.com', 'avery@example .com', 'avery,other@example.com',
+    '.avery@example.com', 'avery.@example.com', 'avery..rider@example.com',
+    'avery@-example.com', 'avery@example-.com', 'avery@example.c',
+    'avery@example.123', `${'a'.repeat(65)}@example.com`, `avery@${'a'.repeat(64)}.com`
+  ];
+  for (const email of invalidEmails) {
+    component.formData.email = email;
+    component.goToStandardStep(2);
+    assert.equal(component.standardStep, 1, email);
+    assert.match(component.stepErrorMessage, /Enter a valid email address, such as name@example.com/, email);
+    assert.equal(component.emailValidationField().targetId, 'customer-email');
+    assert.equal(component.formData.firstName, 'Avery');
+  }
+  component.formData.email = '  ';
+  component.goToStandardStep(2);
+  assert.equal(component.standardStep, 1);
+  assert.match(component.stepErrorMessage, /Enter an email address/);
+  component.formData.email = 'avery@example.com';
+  component.goToStandardStep(2);
+  assert.equal(component.standardStep, 2);
+  assert.equal(component.stepErrorMessage, '');
+});
+
+test('email validation accepts common valid addresses and trims surrounding spaces', () => {
+  const { component } = createHarness();
+  fillCommon(component);
+  for (const email of [
+    'avery@example.com', 'Avery.Rider+service@Mail.Example.co.uk',
+    "o'connor@example.com", 'avery_rider@my-shop.example', '  avery@example.com  '
+  ]) {
+    component.formData.email = email;
+    assert.equal(component.validateStandardStep(1), true, email);
+    assert.equal(component.formData.email, email.trim());
+  }
+});
+
+test('standard and Express submission recheck email before generating a PDF or calling the backend', async () => {
+  for (const mode of ['standard', 'express']) {
+    const { component, apiCalls } = createHarness();
+    component.switchFormType(mode);
+    fillCommon(component, { includeAddress: mode === 'standard' });
+    Object.assign(component.formData.bikes[0], {
+      make: 'E Ride Pro', model: 'SS 4.0', requestedService: 'Brake service', safetyHistory: 'none'
+    });
+    component.formData.expressSelectedServiceIds = ['tire_pressure'];
+    Object.assign(component.formData.disclosures, {
+      diagFeeAcknowledged: true, fullTermsOpened: true,
+      fullTermsAcknowledged: true, expressTermsAcknowledged: true
+    });
+    enableSuccessfulSubmission(component);
+    let pdfCalls = 0;
+    const generatePDF = component.generatePDF;
+    component.generatePDF = async () => { pdfCalls++; return generatePDF(); };
+    component.standardStep = 3;
+    component.formData.email = 'avery@gmai l.com';
+    await component.submitForm();
+    assert.match(component.errorMessage, /Enter a valid email address/);
+    if (mode === 'standard') assert.equal(component.standardStep, 1);
+    assert.equal(apiCalls.length, 0);
+    assert.equal(pdfCalls, 0);
+    assert.equal(component.signaturePad.isEmpty(), false);
+    component.formData.email = '  avery@example.com  ';
+    await component.submitForm();
+    assert.equal(apiCalls.length, 1);
+    assert.equal(apiCalls[0].data.customerInfo.email, 'avery@example.com');
+    component.clearInactivityTimers();
+  }
+});
+
 test('bike cards provide concise summaries and controlled expansion', () => {
   const { component } = createHarness();
   const bike = component.formData.bikes[0];

@@ -150,8 +150,11 @@
                             <input
                                 id="customer-email"
                                 type="email"
-                                v-model="formData.email"
+                                v-model.trim="formData.email"
                                 autocomplete="email"
+                                inputmode="email"
+                                autocapitalize="none"
+                                spellcheck="false"
                             >
                         </div>
                     </div>
