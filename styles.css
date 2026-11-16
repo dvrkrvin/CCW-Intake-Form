@@ -1269,10 +1269,22 @@ h3 {
 }
 
 .contact-field-note {
-    margin-top: 6px;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--accent);
+    background: #f3f6f8;
     color: #565f67;
     font-size: 14px;
     line-height: 1.4;
+}
+
+.contact-note-icon {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 16px;
 }
 
 label {

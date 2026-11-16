@@ -143,9 +143,8 @@
                                 @input="onPhoneInput"
                                 maxlength="14"
                                 autocomplete="tel"
-                                aria-describedby="customer-phone-note"
+                                aria-describedby="customer-contact-note"
                             >
-                            <p id="customer-phone-note" class="contact-field-note">Please provide the phone number of the person responsible for authorizing service and payment. Estimates and approval requests will be sent to this number.</p>
                         </div>
                         <div class="form-group">
                             <label for="customer-email">Email Address <span class="required">*</span></label>
@@ -157,10 +156,13 @@
                                 inputmode="email"
                                 autocapitalize="none"
                                 spellcheck="false"
-                                aria-describedby="customer-email-note"
+                                aria-describedby="customer-contact-note"
                             >
-                            <p id="customer-email-note" class="contact-field-note">Please provide the email address of the person responsible for authorizing service and payment. Estimates and approval requests will be sent to this email address.</p>
                         </div>
+                        <p id="customer-contact-note" class="contact-field-note">
+                            <span class="contact-note-icon" aria-hidden="true">ⓘ</span>
+                            <span><strong>Service approvals:</strong> Use the phone number and email of the person responsible for authorizing service and payment. Estimates and approval requests will be sent to these contacts.</span>
+                        </p>
                     </div>
 
                     <template v-if="formType !== 'express'">
