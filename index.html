@@ -488,8 +488,9 @@
 
                             <div v-if="bike.dropoffType === 'complete_bike'" class="form-row bike-services-row">
                                 <div class="form-group full-width">
-                                    <label :for="`bike-${bike.id}-services`">Services Requested <span class="required">*</span></label>
-                                    <p class="service-picker-guidance">Search and select every service requested for this bike.</p>
+                                    <label :for="`bike-${bike.id}-services`">Select the services you want us to perform <span class="required">*</span></label>
+                                    <p class="service-picker-guidance">Tap the search field below, then select each service you’re requesting. You can select more than one.</p>
+                                    <p v-if="!selectedBikeServices(bike).length" class="service-picker-guidance"><strong>No services selected yet—choose from the list below.</strong></p>
                                     <div class="service-picker" @focusout="onBikeComboboxFocusOut(bike, 'serviceMenuOpen', $event)">
                                         <div class="service-picker-input-shell">
                                             <span class="service-search-icon" aria-hidden="true"></span>
@@ -930,6 +931,9 @@
                             </p>
                         </div>
 
+                        <h3>Select the services you want us to perform</h3>
+                        <p class="service-picker-guidance">Tap each service you’re requesting. You can select more than one.</p>
+                        <p v-if="!expressSelectedCount" class="service-picker-guidance"><strong>No services selected yet—choose from the list below.</strong></p>
                         <div id="express-service-menu" class="express-service-menu" tabindex="-1">
                             <section v-for="category in expressServiceCategories" :key="category" class="express-service-category">
                                 <h3>{{ category }}</h3>
