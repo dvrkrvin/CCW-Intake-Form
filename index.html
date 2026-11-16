@@ -143,6 +143,7 @@
                                 @input="onPhoneInput"
                                 maxlength="14"
                                 autocomplete="tel"
+                                aria-describedby="customer-contact-note"
                             >
                         </div>
                         <div class="form-group">
@@ -155,8 +156,13 @@
                                 inputmode="email"
                                 autocapitalize="none"
                                 spellcheck="false"
+                                aria-describedby="customer-contact-note"
                             >
                         </div>
+                        <p id="customer-contact-note" class="contact-field-note">
+                            <span class="contact-note-icon" aria-hidden="true">ⓘ</span>
+                            <span><strong>Service approvals:</strong> Use the phone number and email of the person responsible for authorizing service and payment. Estimates and approval requests will be sent to these contacts.</span>
+                        </p>
                     </div>
 
                     <template v-if="formType !== 'express'">
