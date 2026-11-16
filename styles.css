@@ -1268,6 +1268,13 @@ h3 {
     grid-column: 1 / -1;
 }
 
+.contact-field-note {
+    margin-top: 6px;
+    color: #565f67;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
 label {
     font-weight: 600;
     margin-bottom: 8px;
